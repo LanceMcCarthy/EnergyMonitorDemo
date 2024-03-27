@@ -153,7 +153,6 @@
     private string CurrentGrid { get; set; } = "0";
     private string CurrentInverterMode { get; set; } = "...";
 
-
     protected override async Task OnInitializedAsync()
     {
         // Get the required MQTT server values from environment
@@ -167,9 +166,10 @@
 
         if (!int.TryParse(port, out var portNumber))
         {
-            Trace.WriteLine("[WARNING] - The value for MQTT_PORT is invalid or empty, double check this is intended. If your MQTT server operates on a specific port, you need to set the MQTT_PORT environment variable.");
+            Trace.WriteLine("[WARNING] - The value for MQTT_PORT is invalid or empty, double check this is intended. If your MQTT server operates on a specific port, you need to set the MQTT_PORT environment variable.", "Energy Monitor");
         }
 
+        // Let's get our feet wet!
         await SetupMqtt(host, portNumber);
     }
 
@@ -178,51 +178,60 @@
         var mqttFactory = new MqttFactory();
         mqttClient = mqttFactory.CreateMqttClient();
 
-        // Operation 1 - Connect to MQTT server
+        // ***** Operation 1 - Connect to MQTT server ***** //
+
         var clientOptions = new MqttClientOptionsBuilder()
             .WithTcpServer(host, port)
             .Build();
 
+        //    1.a - Subscribe to message received event BEFORE connecting
         mqttClient.ApplicationMessageReceivedAsync += OnMqttClientOnApplicationMessageReceivedAsync;
 
+        //    1.b - Connect to the MQTT server
         await mqttClient.ConnectAsync(clientOptions, CancellationToken.None);
 
 
         // ***** Operation 2 - Subscribe to a topic ***** //
 
+        //    2.a - Filter out the messages to only the topics we want.
         var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder()
             .WithTopicFilter(f =>
             {
                 f.WithTopic("solar_assistant/#");
             })
             .Build();
-
+        
+        //    2.b - Subscribe to the server for those topics
         await mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None);
+
 
         Trace.WriteLine("MqttFactory successfully started!", "Energy Monitor");
     }
 
     private Task OnMqttClientOnApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs e)
     {
-        // Process the MQTT message data
-        var messageTopic = ProcessTopicName(e.ApplicationMessage.Topic);
-        var decodedPayload = ProcessPayload(e.ApplicationMessage.PayloadSegment);
+        // Read the topic string. I return a strong type that we can easily work with it instead of crazy strings.
+        var messageTopic = TopicNameHelper.GetTopicName(e.ApplicationMessage.Topic);
+        
+        // Read the payload. Important! It is in the form of an ArraySegment<byte>, so we need to convert to byte[], then to ASCII
+        var decodedPayload = Encoding.ASCII.GetString(e.ApplicationMessage.PayloadSegment.ToArray());
 
-        // TODO - Consider creating an enum, or static string reference, for topics?
+
+        // Now, we can make a decision on what UI elements/collections/etc to add this message's data to
         switch (messageTopic)
         {
-            case "device_mode":
+            case TopicName.DeviceMode_Inverter1:
                 CurrentInverterMode = decodedPayload;
                 break;
 
-            case "load_power":
+            case TopicName.LoadPower_Inverter1:
                 var loadCurrent = Convert.ToDouble(decodedPayload);
                 CurrentLoad = $"{loadCurrent}";
                 LoadPowerData.Add(new ChartMqttDataItem { Category = messageTopic, CurrentValue = loadCurrent, Timestamp = DateTime.Now });
                 if (LoadPowerData.Count > 100) LoadPowerData.RemoveAt(0);
                 break;
 
-            case "pv_power":
+            case TopicName.PvPower_Inverter1:
                 var pvCurrent = Convert.ToDouble(decodedPayload);
                 ArcGaugeValue = pvCurrent;
                 CurrentSolar = $"{pvCurrent}";
@@ -230,42 +239,43 @@
                 if (SolarPowerData.Count > 100) SolarPowerData.RemoveAt(0);
                 break;
 
-            case "battery_power":
+            case TopicName.BatteryPower_Total:
                 var batteryPower = Convert.ToDouble(decodedPayload);
                 CurrentBattery = $"{batteryPower}";
                 BatteryPowerData.Add(new ChartMqttDataItem { Category = messageTopic, CurrentValue = batteryPower, Timestamp = DateTime.Now });
                 if (BatteryPowerData.Count > 100) SolarPowerData.RemoveAt(0);
                 break;
 
-            case "grid_power":
+            case TopicName.GridPower_Inverter1:
                 var gridPower = Convert.ToDouble(decodedPayload);
                 CurrentGrid = $"{gridPower}";
                 GridPowerData.Add(new ChartMqttDataItem { Category = messageTopic, CurrentValue = gridPower, Timestamp = DateTime.Now });
                 if (GridPowerData.Count > 100) GridPowerData.RemoveAt(0);
                 break;
 
-            case "ac_output_frequency":
-            case "ac_output_voltage":
-            case "pv_power_1":
-            case "pv_current_1": 
-            case "pv_voltage_1":
-            case "pv_power_2":
-            case "pv_current_2":
-            case "pv_voltage_2":
-            case "grid_frequency":
-            case "grid_voltage":
-            case "load_apparent_power":
-            case "temperature":
-            case "load_percentage":
-            case "battery_current":
-            case "battery_voltage":
-            case "battery_state_of_charge": // total
-            case "bus_voltage": // total
+            case TopicName.BatteryStateOfCharge_Total:
+            case TopicName.BusVoltage_Total:
+            case TopicName.GridFrequency_Inverter1:
+            case TopicName.PvCurrent1_Inverter1:
+            case TopicName.BatteryVoltage_Inverter1:
+            case TopicName.LoadApparentPower_Inverter1:
+            case TopicName.PvCurrent2_Inverter1:
+            case TopicName.Temperature_Inverter1:
+            case TopicName.LoadPercentage_Inverter1:
+            case TopicName.BatteryCurrent_Inverter1:
+            case TopicName.PvVoltage1_Inverter1:
+            case TopicName.PvVoltage2_Inverter1:
+            case TopicName.PvPower1_Inverter1:
+            case TopicName.GridVoltage_Inverter1:
+            case TopicName.AcOutputFrequency_Inverter1:
+            case TopicName.AcOutputVoltage_Inverter1:
+            case TopicName.PvPower2_Inverter1:
+                break;
             default:
                 break;
         }
 
-        // TODO - Do we really need to update the entire UI just for one value change?
+        // TODO - ED - Do we really need to update the entire UI just for one value change?
         // Why can't we just update individual elements in the switch statement?
         InvokeAsync(StateHasChanged);
 
@@ -277,67 +287,4 @@
         StateHasChanged();
         DashboardChartRef.Refresh();
     }
-
-    /// <summary>
-    /// Trims off unnecessary information from the topic name
-    /// </summary>
-    /// <param name="topic">the full topic name from the MQTT message.</param>
-    /// <returns>Only the exact topic, without prefix or suffix</returns>
-    private string ProcessTopicName(string topic)
-    {
-        var trimmedTopic = topic;
-
-        if (topic.Contains("/total/"))
-        {
-            // trim "solar_assistant/total/" from the beginning
-            trimmedTopic = trimmedTopic.Remove(0, 22);
-        }
-        else if (topic.Contains("/inverter_1/"))
-        {
-            // trim "solar_assistant/inverter_1/" from the beginning
-            trimmedTopic = trimmedTopic.Remove(0, 27);
-        }
-
-        // "/state" off the end
-        trimmedTopic = trimmedTopic.Remove(trimmedTopic.Length - 6, 6);
-
-        return trimmedTopic;
-    }
-
-    /// <summary>
-    /// Converts the payload, from an ArraySegment of byte to the original ASCII string value
-    /// </summary>
-    /// <param name="payloadSegment">The raw value from e.ApplicationMessage.PayloadSegment</param>
-    /// <returns>The original ASCII string representation of the byte data.</returns>
-    private string ProcessPayload(ArraySegment<byte> payloadSegment)
-    {
-        return Encoding.ASCII.GetString(payloadSegment.ToArray());
-    }
-
-    // ******************************************************************* //
-    // These are the topics that come from my SolarAssistant's MQTT server
-    // ******************************************************************* //
-    // solar_assistant/total/battery_power/state: 65
-    // solar_assistant/total/battery_state_of_charge/state: 100
-    // solar_assistant/total/bus_voltage/state: 240.6
-    // solar_assistant/inverter_1/grid_frequency/state: 60.01
-    // solar_assistant/inverter_1/pv_current_1/state: 2.4
-    // solar_assistant/inverter_1/pv_power/state: 165
-    // solar_assistant/inverter_1/battery_voltage/state: 27.2
-    // solar_assistant/inverter_1/load_apparent_power/state: 121
-    // solar_assistant/inverter_1/pv_current_2/state: 0
-    // solar_assistant/inverter_1/temperature/state: 98.4
-    // solar_assistant/inverter_1/load_percentage/state: 4
-    // solar_assistant/inverter_1/battery_current/state: 2.4
-    // solar_assistant/inverter_1/grid_power/state: 0
-    // solar_assistant/inverter_1/pv_voltage_1/state: 69.5
-    // solar_assistant/inverter_1/pv_voltage_2/state: 0
-    // solar_assistant/inverter_1/pv_power_1/state: 165
-    // solar_assistant/inverter_1/device_mode/state: Solar/Battery
-    // solar_assistant/inverter_1/grid_voltage/state: 119.4
-    // solar_assistant/inverter_1/ac_output_frequency/state: 60
-    // solar_assistant/inverter_1/ac_output_voltage/state: 120.1
-    // solar_assistant/inverter_1/pv_power_2/state: 0
-    // solar_assistant/inverter_1/load_power/state: 79
-    // ******************************************************************* //
 }
