@@ -12,6 +12,7 @@ on:
 env:
   CONTAINER_BASE_IMAGE: "mcr.microsoft.com/dotnet/aspnet:8.0"
   SOLUTION_PATH: 'src\EnergyMonitor.sln'
+  PROJECT_PATH: 'src\EnergyMonitor\EnergyMonitor\EnergyMonitor.csproj'
   NUGET_CONFIG_PATH: 'src\nuget.config'
   RID: win-x64
 
@@ -31,11 +32,11 @@ jobs:
 
     - name: Restore NuGet Packages
       run: |
-        dotnet restore ${{env.SOLUTION_PATH}} --configfile ${{env.NUGET_CONFIG_PATH}} -r ${{env.RID}}
+        dotnet restore ${{env.PROJECT_PATH}} --configfile ${{env.NUGET_CONFIG_PATH}} -r ${{env.RID}}
       env:
         TELERIK_USERNAME: "api-key"
         TELERIK_PASSWORD: "${{secrets.TELERIK_NUGET_KEY}}"
 
     - name: Build Project
       run: |
-        dotnet build ${{env.SOLUTION_PATH}} -c Debug -r ${{env.RID}} --no-restore
+        dotnet build ${{env.PROJECT_PATH}} -c Debug -r ${{env.RID}} --no-restore
