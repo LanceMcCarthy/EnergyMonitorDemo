@@ -154,8 +154,8 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: energymonitor-windowsserver
-        path: '${{env.WORKING_DIRECTORY}}/${{env.WEBAPP_PACKAGE_PATH}}'
+        name: 'energymonitor_net8.0-win-x64'
+        path: '${{env.WORKING_DIRECTORY}}\EnergyMonitor\EnergyMonitor\${{env.WEBAPP_PACKAGE_PATH}}'
 
     # There's no azure app, if it is decided to create one, I need the generate publish-profile (service principal option is better)
     # https://learn.microsoft.com/en-us/azure/app-service/deploy-github-actions?tabs=userlevel%2Caspnetcore#1-generate-deployment-credentials
@@ -163,5 +163,6 @@ jobs:
     #   uses: azure/webapps-deploy@v3
     #   with: 
     #     app-name: "my-app-name-from-az-portal"
-    #     publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE  }} # (file contents, not base64)
-    #     package: '${{ env.WEBAPP_PACKAGE_PATH }}'
+    #     option 1 => creds: ${{secrets.AZURE_SERVICE_PRINCIPAL }} #json of principal response
+    #     option 2 => publish-profile: ${{secrets.AZURE_WEBAPP_PUBLISH_PROFILE }} # (file contents, not base64)
+    #     package: '${{env.WORKING_DIRECTORY}}\EnergyMonitor\EnergyMonitor\${{env.WEBAPP_PACKAGE_PATH}}'
