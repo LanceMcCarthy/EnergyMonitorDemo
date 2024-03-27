@@ -1,4 +1,4 @@
-name: Build Blazor Application
+name: Main
 
 on:
   workflow_dispatch:
