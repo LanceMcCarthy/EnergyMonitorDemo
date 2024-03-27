@@ -14,6 +14,7 @@ env:
   CONTAINER_REGISTRY: "ghcr.io"
   CONTAINER_REPOSITORY: "lancemccarthy/energymonitor"
   WORKING_DIRECTORY: "src/"
+  PROJECT_PATH: 'EnergyMonitor/EnergyMonitor/EnergyMonitor.csproj'
 
 jobs:
 #######################################################################
@@ -39,7 +40,7 @@ jobs:
 
     - name: Restore NuGet Packages
       working-directory: ${{env.WORKING_DIRECTORY}}
-      run: dotnet restore -r "linux-${{env.target_arch}}" --configfile "./nuget.config"
+      run: dotnet restore ${{env.PROJECT_PATH}} -r "linux-${{env.target_arch}}" --configfile "./nuget.config"
       env:
         TELERIK_USERNAME: "api-key"
         TELERIK_PASSWORD: "${{secrets.TELERIK_NUGET_KEY}}"
@@ -50,7 +51,7 @@ jobs:
       run: |
         TAG="latest-${{env.target_arch}}"
 
-        dotnet publish -t:PublishContainer -p PublishProfile=DefaultContainer --arch ${{env.target_arch}} -p ContainerImageTag="$TAG" -p ContainerRepository=${{env.CONTAINER_REPOSITORY}} -p ContainerRegistry=${{env.CONTAINER_REGISTRY}} -p ContainerBaseImage=${{env.CONTAINER_BASE_IMAGE}} --no-restore
+        dotnet publish ${{env.PROJECT_PATH}} -t:PublishContainer -p PublishProfile=DefaultContainer --arch ${{env.target_arch}} -p ContainerImageTag="$TAG" -p ContainerRepository=${{env.CONTAINER_REPOSITORY}} -p ContainerRegistry=${{env.CONTAINER_REGISTRY}} -p ContainerBaseImage=${{env.CONTAINER_BASE_IMAGE}} --no-restore
 
         echo "build_tag=$TAG" >> $GITHUB_OUTPUT
 
@@ -74,7 +75,7 @@ jobs:
 
     - name: Restore NuGet Packages
       working-directory: ${{env.WORKING_DIRECTORY}}
-      run: dotnet restore -r "linux-${{env.target_arch}}" --configfile "./nuget.config"
+      run: dotnet restore ${{env.PROJECT_PATH}} -r "linux-${{env.target_arch}}" --configfile "./nuget.config"
       env:
         TELERIK_USERNAME: "api-key"
         TELERIK_PASSWORD: "${{secrets.TELERIK_NUGET_KEY}}"
@@ -85,7 +86,7 @@ jobs:
       run: |
         TAG="latest-${{env.target_arch}}"
 
-        dotnet publish -t:PublishContainer -p PublishProfile=DefaultContainer --arch ${{env.target_arch}} -p ContainerImageTag="$TAG" -p ContainerRepository=${{env.CONTAINER_REPOSITORY}} -p ContainerRegistry=${{env.CONTAINER_REGISTRY}} -p ContainerBaseImage=${{env.CONTAINER_BASE_IMAGE}} --no-restore
+        dotnet publish ${{env.PROJECT_PATH}} -t:PublishContainer -p PublishProfile=DefaultContainer --arch ${{env.target_arch}} -p ContainerImageTag="$TAG" -p ContainerRepository=${{env.CONTAINER_REPOSITORY}} -p ContainerRegistry=${{env.CONTAINER_REGISTRY}} -p ContainerBaseImage=${{env.CONTAINER_BASE_IMAGE}} --no-restore
 
         echo "build_tag=$TAG" >> $GITHUB_OUTPUT
 
@@ -120,7 +121,6 @@ jobs:
     if: false
     env:
       RID: win-x64
-      AZURE_WEBAPP_NAME: my-app-name-from-az-portal
       AZURE_WEBAPP_PACKAGE_PATH: '.'
     steps:
     - name: Checkout
@@ -134,14 +134,16 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Restore NuGet Packages
+      working-directory: ${{env.WORKING_DIRECTORY}}
       run: |
-        dotnet restore src\EnergyMonitor.sln --configfile "src\nuget.config" -r ${{env.RID}}
+        dotnet restore ${{env.PROJECT_PATH}} --configfile "src\nuget.config" -r ${{env.RID}}
       env:
         TELERIK_USERNAME: "api-key"
         TELERIK_PASSWORD: "${{secrets.TELERIK_NUGET_KEY}}"
 
     - name: Build Project
-      run: dotnet publish src\EnergyMonitor.sln -c Release -r ${{env.RID}} --no-restore --property:PublishDir='${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/myapp'
+      working-directory: ${{env.WORKING_DIRECTORY}}
+      run: dotnet publish ${{env.PROJECT_PATH}} -c Release -r ${{env.RID}} --no-restore --property:PublishDir='${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/myapp'
 
     # There's no azure app, if it is decided to create one, I need the generate publish-profile (service principal option is better)
     # https://learn.microsoft.com/en-us/azure/app-service/deploy-github-actions?tabs=userlevel%2Caspnetcore#1-generate-deployment-credentials
