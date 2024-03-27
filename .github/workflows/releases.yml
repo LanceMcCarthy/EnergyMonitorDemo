@@ -128,7 +128,7 @@ jobs:
     runs-on: windows-2022
     env:
       RID: win-x64
-      WEBAPP_PACKAGE_PATH: './production/'
+      WEBAPP_PACKAGE_PATH: 'production'
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -150,12 +150,12 @@ jobs:
 
     - name: Build Project
       working-directory: ${{env.WORKING_DIRECTORY}}
-      run: dotnet publish ${{env.PROJECT_PATH}} -c Release -r ${{env.RID}} --no-restore --property:PublishDir='${{env.WEBAPP_PACKAGE_PATH}}'
+      run: dotnet publish ${{env.PROJECT_PATH}} -c Release -r ${{env.RID}} --no-restore --property:PublishDir='.\${{env.WEBAPP_PACKAGE_PATH}}'
 
     - uses: actions/upload-artifact@v4
       with:
         name: energymonitor-windowsserver
-        path: "${{env.WORKING_DIRECTORY}}/${{env.WEBAPP_PACKAGE_PATH}}"
+        path: '${{env.WORKING_DIRECTORY}}\${{env.WEBAPP_PACKAGE_PATH}}'
 
     # There's no azure app, if it is decided to create one, I need the generate publish-profile (service principal option is better)
     # https://learn.microsoft.com/en-us/azure/app-service/deploy-github-actions?tabs=userlevel%2Caspnetcore#1-generate-deployment-credentials
