@@ -57,7 +57,7 @@ public partial class Home
             .Build();
 
         //    1.a - Subscribe to message received event BEFORE connecting
-        mqttClient.ApplicationMessageReceivedAsync += OnMqttClientOnApplicationMessageReceivedAsync;
+        mqttClient.ApplicationMessageReceivedAsync += OnMessageReceivedAsync;
 
         //    1.b - Connect to the MQTT server
         await mqttClient.ConnectAsync(clientOptions, CancellationToken.None);
@@ -77,16 +77,22 @@ public partial class Home
         Trace.WriteLine("MqttFactory successfully started!", "Energy Monitor");
     }
 
-    private Task OnMqttClientOnApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs e)
+    private Task OnMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs e)
     {
+        // ****** Processing a Message ****** //
+
+        // **  Step 1 - Get the topic and payload data out of the message
+
         // Read the topic string. I return a strong type that we can easily work with it instead of crazy strings.
         var messageTopic = TopicNameHelper.GetTopicName(e.ApplicationMessage.Topic);
 
-        // Read the payload. Important! It is in the form of an ArraySegment<byte>, so we need to convert to byte[], then to ASCII
+        // Read the payload. Important! It is in the form of an ArraySegment<byte>, so we need to convert to byte[], then to ASCII.
         var decodedPayload = Encoding.ASCII.GetString(e.ApplicationMessage.PayloadSegment.ToArray());
 
 
-        // Now, we can make a decision on what UI elements/collections/etc to add this message's data to
+        // **  Step 2 - Now we can do something with that data.
+
+        // Update the relevant UI element, collection, etc
         switch (messageTopic)
         {
             case TopicName.DeviceMode_Inverter1:
