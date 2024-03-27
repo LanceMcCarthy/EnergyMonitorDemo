@@ -143,7 +143,7 @@ jobs:
     - name: Restore NuGet Packages
       working-directory: ${{env.WORKING_DIRECTORY}}
       run: |
-        dotnet restore ${{env.PROJECT_PATH}} --configfile "src\nuget.config" -r ${{env.RID}}
+        dotnet restore ${{env.PROJECT_PATH}} --configfile ".\nuget.config" -r ${{env.RID}}
       env:
         TELERIK_USERNAME: "api-key"
         TELERIK_PASSWORD: "${{secrets.TELERIK_NUGET_KEY}}"
