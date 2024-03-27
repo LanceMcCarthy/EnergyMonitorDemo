@@ -6,20 +6,45 @@ A demo project that shows how to use MQTT with a .NET web, mobile and desktop ap
 | `main` | [![Main](https://github.com/LanceMcCarthy/EnergyMonitorDemo/actions/workflows/main.yml/badge.svg)](https://github.com/LanceMcCarthy/EnergyMonitorDemo/actions/workflows/main.yml) |
 | `releases/*` | [![Releases](https://github.com/LanceMcCarthy/EnergyMonitorDemo/actions/workflows/releases.yml/badge.svg)](https://github.com/LanceMcCarthy/EnergyMonitorDemo/actions/workflows/releases.yml) |
 
-
-## Releases
-
-there are two production build options you can choose from; container or IIS.
+## Deployment Options
 
 ### Docker
 
-For quick deployments and fast upgrades, I recommend using [the container release](https://github.com/LanceMcCarthy/EnergyMonitorDemo/pkgs/container/energymonitor) and the `:latest` tag. 
+For quick deployments and fast upgrades, I recommend using the `ghcr.io/lancemccarthy/energymonitor:latest`. This container has both `ARM64` and `X64` images.
 
-`docker run -d -e MQTT_HOST='10.0.0.2' -e MQTT_PORT='1883' ghcr.io/lancemccarthy/energymonitor:latest`
+```
+docker run -d -p 8080:8080 \
+  -e MQTT_HOST='broker.hivemq.com' -e MQTT_PORT='' \
+  ghcr.io/lancemccarthy/energymonitor:latest
+```
 
 > [!IMPORTANT]
-> Make sure you set the `MQTT_HOST` and `MQTT_PORT` environment variables.
+> In addition to forwarding the correct port `-p 8080:8080`, make sure you set the `MQTT_HOST` and `MQTT_PORT` environment variables. Those env vars are used to connect to your MQTT server. 
 
-### Azure, Windows Server, Etc.
+### Docker Compose
 
-The Releases workflow will have a Windows Server build artifact attached to it, you can download it and host with IIS or any system that supports hosting .NET web applications.
+This is similar to a docker CLI command, except everything is done for you based on yaml inside a `docker-compose.yml` file.
+
+```yml
+version: '3'
+services:
+  app:
+    image: 'ghcr.io/lancemccarthy/energymonitor:latest'
+    restart: unless-stopped
+    ports:
+      # host-port:container-port
+      - '8080:8080'
+    environment:
+      # Your-mqtt-server's ip-address or-domain name
+      - MQTT_HOST="broker.hivemq.com"
+      # This is usually 1883 by default, but some domain-based servers just serve over 80 (http) or 443 (https) by default
+      - MQTT_PORT=""
+```
+
+With that file in the current directory, all you need to do is run the following command:
+
+`docker compose up -d`
+
+### Azure | Windows | Windows Server
+
+You will find a `energymonitor_net8.0-win-x64.zip` artifact attached to every GitHub Actions release workflow. You can host this build with IIS or any system that supports hosting .NET web applications.
