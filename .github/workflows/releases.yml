@@ -93,6 +93,9 @@ jobs:
   publish_combined_manifest:  # combine images into single manifest (.NET SDK doesn't support multi-arch container builds yet)
     runs-on: ubuntu-22.04
     needs: [build_x64, build_arm64]
+    permissions:
+      contents: read
+      packages: write
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -118,10 +121,9 @@ jobs:
 #########################################################
   build_windows:
     runs-on: windows-2022
-    if: false
     env:
       RID: win-x64
-      AZURE_WEBAPP_PACKAGE_PATH: '.'
+      WEBAPP_PACKAGE_PATH: '.'
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -143,7 +145,7 @@ jobs:
 
     - name: Build Project
       working-directory: ${{env.WORKING_DIRECTORY}}
-      run: dotnet publish ${{env.PROJECT_PATH}} -c Release -r ${{env.RID}} --no-restore --property:PublishDir='${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/myapp'
+      run: dotnet publish ${{env.PROJECT_PATH}} -c Release -r ${{env.RID}} --no-restore --property:PublishDir='${{env.WEBAPP_PACKAGE_PATH}}/myapp'
 
     # There's no azure app, if it is decided to create one, I need the generate publish-profile (service principal option is better)
     # https://learn.microsoft.com/en-us/azure/app-service/deploy-github-actions?tabs=userlevel%2Caspnetcore#1-generate-deployment-credentials
@@ -152,4 +154,9 @@ jobs:
     #   with: 
     #     app-name: "my-app-name-from-az-portal"
     #     publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE  }} # (file contents, not base64)
-    #     package: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/myapp'
+    #     package: '${{ env.WEBAPP_PACKAGE_PATH }}/myapp'
+
+    - uses: actions/upload-artifact@v4
+    with:
+      name: my-artifact
+      path: "${{env.WORKING_DIRECTORY}}/${{env.WEBAPP_PACKAGE_PATH}}/myapp/"
