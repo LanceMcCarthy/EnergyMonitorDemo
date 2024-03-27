@@ -29,21 +29,12 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
-    - name: Fetch secrets from AKeyless
-      id: akeyless
-      uses: LanceMcCarthy/akeyless-action@v3 
-      with:
-        access-id: 'p-fq3qbjjxv839'
-        static-secrets: '{"/personal-keys/mccarthy/TELERIK_NUGET_KEY":"TELERIK_NUGET_KEY"}'
-        export-secrets-to-outputs: true
-        export-secrets-to-environment: false
-
     - name: Restore NuGet Packages
       run: |
         dotnet restore ${{env.SOLUTION_PATH}} --configfile ${{env.NUGET_CONFIG_PATH}} -r ${{env.RID}}
       env:
         TELERIK_USERNAME: "api-key"
-        TELERIK_PASSWORD: "${{steps.akeyless.outputs.TELERIK_NUGET_KEY}}"
+        TELERIK_PASSWORD: "${{secrets.TELERIK_NUGET_KEY}}"
 
     - name: Build Project
       run: |
