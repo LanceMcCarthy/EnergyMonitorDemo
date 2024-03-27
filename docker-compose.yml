@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  app:
+    image: 'ghcr.io/lancemccarthy/energymonitor:latest'
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+    environment:
+      # Your-mqtt-server's ip-address or-domain name
+      - MQTT_HOST="broker.hivemq.com"
+      # This is usually 1883 by default, but some domain-based servers just serve over 80 (http) or 443 (https) by default
+      - MQTT_PORT=""
