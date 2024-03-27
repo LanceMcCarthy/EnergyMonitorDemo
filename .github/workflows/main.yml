@@ -1,2 +1,50 @@
-name: For Main Builds and Deployments
-# Nothing to see here right now
+name: Build Blazor Application
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**/*'
+      - '.github/workflows/main.yml'
+
+env:
+  CONTAINER_BASE_IMAGE: "mcr.microsoft.com/dotnet/aspnet:8.0"
+  SOLUTION_PATH: 'src\EnergyMonitor.sln'
+  NUGET_CONFIG_PATH: 'src\nuget.config'
+  RID: win-x64
+
+jobs:
+  build_windows: # quick debug build on Windows, no publishing (see releases.yml for Release deployments)
+    runs-on: windows-2022
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET Core SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Fetch secrets from AKeyless
+      id: akeyless
+      uses: LanceMcCarthy/akeyless-action@v3 
+      with:
+        access-id: 'p-fq3qbjjxv839'
+        static-secrets: '{"/personal-keys/mccarthy/TELERIK_NUGET_KEY":"TELERIK_NUGET_KEY"}'
+        export-secrets-to-outputs: true
+        export-secrets-to-environment: false
+
+    - name: Restore NuGet Packages
+      run: |
+        dotnet restore ${{env.SOLUTION_PATH}} --configfile ${{env.NUGET_CONFIG_PATH}} -r ${{env.RID}}
+      env:
+        TELERIK_USERNAME: "api-key"
+        TELERIK_PASSWORD: "${{steps.akeyless.outputs.TELERIK_NUGET_KEY}}"
+
+    - name: Build Project
+      run: |
+        dotnet build ${{env.SOLUTION_PATH}} -c Debug -r ${{env.RID}} --no-restore

@@ -3,11 +3,9 @@ using EnergyMonitor.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var  MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
-
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: MyAllowSpecificOrigins, policy  => { policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin(); });
+    options.AddPolicy(name: "_myAllowAllOrigins", policy  => { policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin(); });
 });
 
 // Add services to the container.
@@ -36,7 +34,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.UseCors(MyAllowSpecificOrigins);
+app.UseCors("_myAllowAllOrigins");
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
