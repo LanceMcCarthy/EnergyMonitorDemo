@@ -5,6 +5,7 @@
 @using EnergyMonitor.Client.Models
 @using MQTTnet
 @using MQTTnet.Client
+@inject IConfiguration Configuration
 
 <div class="k-d-flex-col k-justify-content-center">
     <div style="text-align:center">@((MarkupString)CurrentInverterMode)</div>
@@ -117,7 +118,6 @@
     </TelerikTileLayout>
 </div>
 
-
 <style>
     .k-arcgauge-label {
         top: 55px !important;
@@ -141,8 +141,6 @@
 
 @code {
     private IMqttClient? mqttClient;
-    private const string MqttHost = "192.168.0.83"; //TODO Ed, you will update this once I give you a domain name
-    private const int MqttPort = 1883;
     private TelerikChart DashboardChartRef { get; set; } = null!;
     private ObservableCollection<ChartMqttDataItem> SolarPowerData { get; } = new();
     private ObservableCollection<ChartMqttDataItem> LoadPowerData { get; } = new();
@@ -158,12 +156,31 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Get the required MQTT server values from environment
+        var host = Configuration["MQTT_HOST"];
+        var port = Configuration["MQTT_PORT"];
+
+        if (string.IsNullOrEmpty(host))
+        {
+            throw new ArgumentNullException("MQTT_HOST", "A value for the MQTT_HOST environment variable must be set before starting the application.");
+        }
+
+        if (!int.TryParse(port, out var portNumber))
+        {
+            Trace.WriteLine("[WARNING] - The value for MQTT_PORT is invalid or empty, double check this is intended. If your MQTT server operates on a specific port, you need to set the MQTT_PORT environment variable.");
+        }
+
+        await SetupMqtt(host, portNumber);
+    }
+
+    private async Task SetupMqtt(string host, int port)
+    {
         var mqttFactory = new MqttFactory();
         mqttClient = mqttFactory.CreateMqttClient();
 
         // Operation 1 - Connect to MQTT server
         var clientOptions = new MqttClientOptionsBuilder()
-            .WithTcpServer(MqttHost, MqttPort)
+            .WithTcpServer(host, port)
             .Build();
 
         mqttClient.ApplicationMessageReceivedAsync += OnMqttClientOnApplicationMessageReceivedAsync;
@@ -172,29 +189,6 @@
 
 
         // ***** Operation 2 - Subscribe to a topic ***** //
-        // >>> These are the current topics of my current inverter, through SolarAssistant <<
-        // solar_assistant/total/battery_power/state: 65
-        // solar_assistant/total/battery_state_of_charge/state: 100
-        // solar_assistant/total/bus_voltage/state: 240.6
-        // solar_assistant/inverter_1/grid_frequency/state: 60.01
-        // solar_assistant/inverter_1/pv_current_1/state: 2.4
-        // solar_assistant/inverter_1/pv_power/state: 165
-        // solar_assistant/inverter_1/battery_voltage/state: 27.2
-        // solar_assistant/inverter_1/load_apparent_power/state: 121
-        // solar_assistant/inverter_1/pv_current_2/state: 0
-        // solar_assistant/inverter_1/temperature/state: 98.4
-        // solar_assistant/inverter_1/load_percentage/state: 4
-        // solar_assistant/inverter_1/battery_current/state: 2.4
-        // solar_assistant/inverter_1/grid_power/state: 0
-        // solar_assistant/inverter_1/pv_voltage_1/state: 69.5
-        // solar_assistant/inverter_1/pv_voltage_2/state: 0
-        // solar_assistant/inverter_1/pv_power_1/state: 165
-        // solar_assistant/inverter_1/device_mode/state: Solar/Battery
-        // solar_assistant/inverter_1/grid_voltage/state: 119.4
-        // solar_assistant/inverter_1/ac_output_frequency/state: 60
-        // solar_assistant/inverter_1/ac_output_voltage/state: 120.1
-        // solar_assistant/inverter_1/pv_power_2/state: 0
-        // solar_assistant/inverter_1/load_power/state: 79
 
         var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder()
             .WithTopicFilter(f =>
@@ -319,4 +313,31 @@
     {
         return Encoding.ASCII.GetString(payloadSegment.ToArray());
     }
+
+    // ******************************************************************* //
+    // These are the topics that come from my SolarAssistant's MQTT server
+    // ******************************************************************* //
+    // solar_assistant/total/battery_power/state: 65
+    // solar_assistant/total/battery_state_of_charge/state: 100
+    // solar_assistant/total/bus_voltage/state: 240.6
+    // solar_assistant/inverter_1/grid_frequency/state: 60.01
+    // solar_assistant/inverter_1/pv_current_1/state: 2.4
+    // solar_assistant/inverter_1/pv_power/state: 165
+    // solar_assistant/inverter_1/battery_voltage/state: 27.2
+    // solar_assistant/inverter_1/load_apparent_power/state: 121
+    // solar_assistant/inverter_1/pv_current_2/state: 0
+    // solar_assistant/inverter_1/temperature/state: 98.4
+    // solar_assistant/inverter_1/load_percentage/state: 4
+    // solar_assistant/inverter_1/battery_current/state: 2.4
+    // solar_assistant/inverter_1/grid_power/state: 0
+    // solar_assistant/inverter_1/pv_voltage_1/state: 69.5
+    // solar_assistant/inverter_1/pv_voltage_2/state: 0
+    // solar_assistant/inverter_1/pv_power_1/state: 165
+    // solar_assistant/inverter_1/device_mode/state: Solar/Battery
+    // solar_assistant/inverter_1/grid_voltage/state: 119.4
+    // solar_assistant/inverter_1/ac_output_frequency/state: 60
+    // solar_assistant/inverter_1/ac_output_voltage/state: 120.1
+    // solar_assistant/inverter_1/pv_power_2/state: 0
+    // solar_assistant/inverter_1/load_power/state: 79
+    // ******************************************************************* //
 }
