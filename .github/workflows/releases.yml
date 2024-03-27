@@ -130,13 +130,16 @@ jobs:
         X86_TAG: ${{needs.build_x64.outputs.build_tag}}
         ARM64_TAG: ${{needs.build_arm64.outputs.build_tag}}
 
-#######################################################################
-#           WINDOWS BUILD - Doesn't publish anywhere (yet)            #
-#######################################################################
+#########################################################
+#           WINDOWS BUILD - DISABLED FOR NOW            #
+#########################################################
   build_windows:
     runs-on: windows-2022
+    if: false
     env:
       RID: win-x64
+      AZURE_WEBAPP_NAME: my-app-name-from-az-portal
+      AZURE_WEBAPP_PACKAGE_PATH: '.'
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -165,7 +168,13 @@ jobs:
         TELERIK_PASSWORD: "${{steps.akeyless.outputs.NUGET_API_KEY}}"
 
     - name: Build Project
-      run: dotnet build src\EnergyMonitor.sln -c Release -r ${{env.RID}} --no-restore
+      run: dotnet publish src\EnergyMonitor.sln -c Release -r ${{env.RID}} --no-restore --property:PublishDir='${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/myapp'
 
-    # - name: Publish Project - If/when we have Azure app to deploy to.
-    #   run: dotnet publish src\EnergyMonitor.sln -c Release -r ${{env.RID}} --no-restore
+    # There's no azure app, if it is decided to create one, I need the generate publish-profile (service principal option is better)
+    # https://learn.microsoft.com/en-us/azure/app-service/deploy-github-actions?tabs=userlevel%2Caspnetcore#1-generate-deployment-credentials
+    # - name: 'Azure webapp deploy (via publish profile)'
+    #   uses: azure/webapps-deploy@v3
+    #   with: 
+    #     app-name: "my-app-name-from-az-portal"
+    #     publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE  }} # (file contents, not base64)
+    #     package: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/myapp'
