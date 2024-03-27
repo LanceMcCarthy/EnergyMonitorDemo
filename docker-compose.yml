@@ -4,6 +4,7 @@ services:
     image: 'ghcr.io/lancemccarthy/energymonitor:latest'
     restart: unless-stopped
     ports:
+      # host-port:container-port
       - '8080:8080'
     environment:
       # Your-mqtt-server's ip-address or-domain name
