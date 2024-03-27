@@ -1,0 +1,171 @@
+name: Build Blazor Application
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "releases/*"
+    paths:
+      - 'src/**/*'
+      - '.github/workflows/releases.yml'
+
+env:
+  CONTAINER_BASE_IMAGE: "mcr.microsoft.com/dotnet/aspnet:8.0"
+  CONTAINER_REGISTRY: "ghcr.io"
+  CONTAINER_REPOSITORY: "lancemccarthy/energymonitor"
+  WORKING_DIRECTORY: "src/"
+
+jobs:
+#######################################################################
+#  .NET SDK CONTAINER BUILD - Publishes to GitHub container registry  #
+#######################################################################
+  build_x64:  # Build an image for x64 machines
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      build_tag: ${{ steps.build.outputs.build_tag }}
+    env:
+      target_arch: "x64"
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Login to GitHub Container Registry
+      run: docker login ${{env.CONTAINER_REGISTRY}} -u ${{github.actor}} -p ${{secrets.GITHUB_TOKEN}}
+
+    - name: Fetch secrets from AKeyless
+      id: akeyless
+      uses: LanceMcCarthy/akeyless-action@v3 
+      with:
+        access-id: 'p-fq3qbjjxv839'
+        static-secrets: '{"/personal-keys/mccarthy/TELERIK_NUGET_KEY":"NUGET_API_KEY"}'
+        export-secrets-to-outputs: true
+        export-secrets-to-environment: false
+
+    - name: Restore NuGet Packages
+      working-directory: ${{env.WORKING_DIRECTORY}}
+      run: dotnet restore -r "linux-${{env.target_arch}}" --configfile "./nuget.config"
+      env:
+        TELERIK_USERNAME: "api-key"
+        TELERIK_PASSWORD: "${{steps.akeyless.outputs.NUGET_API_KEY}}"
+
+    - name: build the x64 image
+      id: build
+      working-directory: ${{env.WORKING_DIRECTORY}}
+      run: |
+        TAG="latest-${{env.target_arch}}"
+
+        dotnet publish -t:PublishContainer -p PublishProfile=DefaultContainer --arch ${{env.target_arch}} -p ContainerImageTag="$TAG" -p ContainerRepository=${{env.CONTAINER_REPOSITORY}} -p ContainerRegistry=${{env.CONTAINER_REGISTRY}} -p ContainerBaseImage=${{env.CONTAINER_BASE_IMAGE}} --no-restore
+
+        echo "build_tag=$TAG" >> $GITHUB_OUTPUT
+
+  build_arm64: # Build an image for ARM64 machines
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      build_tag: ${{ steps.build.outputs.build_tag }}
+    env:
+      target_arch: "arm64"
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Login to GitHub Container Registry
+      run: docker login ${{env.CONTAINER_REGISTRY}} -u ${{github.actor}} -p ${{secrets.GITHUB_TOKEN}}
+
+    - name: Fetch secrets from AKeyless
+      id: akeyless
+      uses: LanceMcCarthy/akeyless-action@v3 
+      with:
+        access-id: 'p-fq3qbjjxv839'
+        static-secrets: '{"/personal-keys/mccarthy/TELERIK_NUGET_KEY":"NUGET_API_KEY"}'
+        export-secrets-to-outputs: true
+        export-secrets-to-environment: false
+
+    - name: Restore NuGet Packages
+      working-directory: ${{env.WORKING_DIRECTORY}}
+      run: dotnet restore -r "linux-${{env.target_arch}}" --configfile "./nuget.config"
+      env:
+        TELERIK_USERNAME: "api-key"
+        TELERIK_PASSWORD: "${{steps.akeyless.outputs.NUGET_API_KEY}}"
+
+    - name: build the arm64 image
+      id: build
+      working-directory: ${{env.WORKING_DIRECTORY}}
+      run: |
+        TAG="latest-${{env.target_arch}}"
+
+        dotnet publish -t:PublishContainer -p PublishProfile=DefaultContainer --arch ${{env.target_arch}} -p ContainerImageTag="$TAG" -p ContainerRepository=${{env.CONTAINER_REPOSITORY}} -p ContainerRegistry=${{env.CONTAINER_REGISTRY}} -p ContainerBaseImage=${{env.CONTAINER_BASE_IMAGE}} --no-restore
+
+        echo "build_tag=$TAG" >> $GITHUB_OUTPUT
+
+  publish_combined_manifest:  # combine images into single manifest (.NET SDK doesn't support multi-arch container builds yet)
+    runs-on: ubuntu-22.04
+    needs: [build_x64, build_arm64]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Login to GitHub Container Registry
+      run: docker login ${{env.CONTAINER_REGISTRY}} -u ${{github.actor}} -p ${{secrets.GITHUB_TOKEN}}
+
+    - name: create the multi-image manifest
+      run: |
+        docker manifest create "${{env.CONTAINER_REGISTRY}}/${{env.CONTAINER_REPOSITORY}}:latest" \
+          "${{env.CONTAINER_REGISTRY}}/${{env.CONTAINER_REPOSITORY}}:$X86_TAG" \
+          "${{env.CONTAINER_REGISTRY}}/${{env.CONTAINER_REPOSITORY}}:$ARM64_TAG"
+        
+        docker manifest push "${{env.CONTAINER_REGISTRY}}/${{env.CONTAINER_REPOSITORY}}:latest"
+      env:
+        X86_TAG: ${{needs.build_x64.outputs.build_tag}}
+        ARM64_TAG: ${{needs.build_arm64.outputs.build_tag}}
+
+#######################################################################
+#           WINDOWS BUILD - Doesn't publish anywhere (yet)            #
+#######################################################################
+  build_windows:
+    runs-on: windows-2022
+    env:
+      RID: win-x64
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET Core SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Fetch secrets from AKeyless
+      id: akeyless
+      uses: LanceMcCarthy/akeyless-action@v3 
+      with:
+        access-id: 'p-fq3qbjjxv839'
+        static-secrets: '{"/personal-keys/mccarthy/TELERIK_NUGET_KEY":"NUGET_API_KEY"}'
+        export-secrets-to-outputs: true
+        export-secrets-to-environment: false
+
+    - name: Restore NuGet Packages
+      run: |
+        dotnet restore src\EnergyMonitor.sln --configfile "src\nuget.config" -r ${{env.RID}}
+      env:
+        TELERIK_USERNAME: "api-key"
+        TELERIK_PASSWORD: "${{steps.akeyless.outputs.NUGET_API_KEY}}"
+
+    - name: Build Project
+      run: dotnet build src\EnergyMonitor.sln -c Release -r ${{env.RID}} --no-restore
+
+    # - name: Publish Project - If/when we have Azure app to deploy to.
+    #   run: dotnet publish src\EnergyMonitor.sln -c Release -r ${{env.RID}} --no-restore
