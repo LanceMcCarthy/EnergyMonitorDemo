@@ -8,13 +8,11 @@
 
 <div class="k-d-flex-col k-justify-content-center">
     <div style="text-align:center">
-        Inverter Mode: @((MarkupString)CurrentInverterMode)
-        
-        <TelerikSwitch OnLabel="Listening"
+        <TelerikSwitch OnLabel="On"
                        OffLabel="Paused"
                        Value="@IsSubscribed"
                        ValueChanged="@((bool val) => OnIsSubscribedChanged(val))"
-                       Width="95px"/>
+                       Width="95px" />
     </div>
     
     <TelerikTileLayout Columns="5"
@@ -49,9 +47,12 @@
                     <BatteryGauge BatteryChargePercentage="@BatteryChargePercentage"/>
                 </Content>
             </TileLayoutItem>
-            <TileLayoutItem Class="chart-tile" RowSpan="2" ColSpan="4">
+            <TileLayoutItem Class="chart-tile" RowSpan="2" ColSpan="5">
                 <HeaderTemplate>
-                    <span style="font-size:16px;font-weight:400">Total Generation</span>
+                    <span style="font-size:16px;font-weight:400">
+                        Total Generation - Inverter Mode: @((MarkupString)CurrentInverterMode) - Charging Source Priority: @((MarkupString)ChargerSourcePriority)
+                    </span>
+
                 </HeaderTemplate>
                 <Content>
                     <SystemPowerChart 

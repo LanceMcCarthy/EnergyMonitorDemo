@@ -34,5 +34,6 @@ public enum TopicName
     AcOutputFrequency_Inverter1,
     AcOutputVoltage_Inverter1,
     LoadPower_Inverter1,
-    PvPower2_Inverter1
+    PvPower2_Inverter1,
+    ChargerSourcePriority_Inverter1
 }
