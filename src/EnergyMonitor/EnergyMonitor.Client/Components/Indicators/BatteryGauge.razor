@@ -1,0 +1,22 @@
+﻿<TelerikArcGauge Width="150px" Height="120px">
+    <ArcGaugeCenterLabel>
+        <Template>
+            <div style="font-size:30px;color:#0058E9">
+                <strong>@(context.Pointers[0].Value)%</strong>
+            </div>
+        </Template>
+    </ArcGaugeCenterLabel>
+    <ArcGaugeScales>
+        <ArcGaugeScale Min="0" Max="100" />
+    </ArcGaugeScales>
+    <ArcGaugePointers>
+        <ArcGaugePointer Value="@BatteryChargePercentage" Color="#0058E9"/>
+    </ArcGaugePointers>
+</TelerikArcGauge>
+<div style="text-align:center">Battery Charge</div>
+
+@code {
+    [Parameter]
+    public double BatteryChargePercentage { get; set; } = 0;
+
+}

@@ -4,33 +4,6 @@ namespace EnergyMonitor.Client.Models;
 
 public static class TopicNameHelper
 {
-    // ******************************************************************* //
-    // These are the topics and real-world values
-    // ******************************************************************* //
-    // solar_assistant/total/battery_power/state: 65
-    // solar_assistant/total/battery_state_of_charge/state: 100
-    // solar_assistant/total/bus_voltage/state: 240.6
-    // solar_assistant/inverter_1/grid_frequency/state: 60.01
-    // solar_assistant/inverter_1/pv_current_1/state: 2.4
-    // solar_assistant/inverter_1/pv_power/state: 165
-    // solar_assistant/inverter_1/battery_voltage/state: 27.2
-    // solar_assistant/inverter_1/load_apparent_power/state: 121
-    // solar_assistant/inverter_1/pv_current_2/state: 0
-    // solar_assistant/inverter_1/temperature/state: 98.4
-    // solar_assistant/inverter_1/load_percentage/state: 4
-    // solar_assistant/inverter_1/battery_current/state: 2.4
-    // solar_assistant/inverter_1/grid_power/state: 0
-    // solar_assistant/inverter_1/pv_voltage_1/state: 69.5
-    // solar_assistant/inverter_1/pv_voltage_2/state: 0
-    // solar_assistant/inverter_1/pv_power_1/state: 165
-    // solar_assistant/inverter_1/device_mode/state: Solar/Battery
-    // solar_assistant/inverter_1/grid_voltage/state: 119.4
-    // solar_assistant/inverter_1/ac_output_frequency/state: 60
-    // solar_assistant/inverter_1/ac_output_voltage/state: 120.1
-    // solar_assistant/inverter_1/pv_power_2/state: 0
-    // solar_assistant/inverter_1/load_power/state: 79
-    // ******************************************************************* //
-
     /// <summary>
     /// Converts the topic string (e.g. 'solar_assistant/inverter_1/battery_current/state') to a more easily workable enum
     /// </summary>
@@ -69,7 +42,33 @@ public static class TopicNameHelper
             "solar_assistant/inverter_1/ac_output_voltage/state" => TopicName.AcOutputVoltage_Inverter1,
             "solar_assistant/inverter_1/load_power/state" => TopicName.LoadPower_Inverter1,
             "solar_assistant/inverter_1/pv_power_2/state" => TopicName.PvPower2_Inverter1,
-            _ => throw new ArgumentOutOfRangeException($"The topic name {topic} has no match. Please update the enum and helper method to support the new topic."),
+            "solar_assistant/inverter_1/charger_source_priority/state" => TopicName.ChargerSourcePriority_Inverter1,
+            _ => throw new ArgumentOutOfRangeException($"The topic name {topic} has no match. Please update the TopicName.cs enum and TopicNameHelper.GetTopicName method to support reading this new topic."),
         };
     }
+
+    // example values
+    // ******************************************************************* //
+    // solar_assistant/total/battery_power/state: 65
+    // solar_assistant/total/battery_state_of_charge/state: 100
+    // solar_assistant/total/bus_voltage/state: 240.6
+    // solar_assistant/inverter_1/grid_frequency/state: 60.01
+    // solar_assistant/inverter_1/pv_current_1/state: 2.4
+    // solar_assistant/inverter_1/pv_power/state: 165
+    // solar_assistant/inverter_1/battery_voltage/state: 27.2
+    // solar_assistant/inverter_1/load_apparent_power/state: 121
+    // solar_assistant/inverter_1/pv_current_2/state: 0
+    // solar_assistant/inverter_1/temperature/state: 98.4
+    // solar_assistant/inverter_1/load_percentage/state: 4
+    // solar_assistant/inverter_1/battery_current/state: 2.4
+    // solar_assistant/inverter_1/grid_power/state: 0
+    // solar_assistant/inverter_1/pv_voltage_1/state: 69.5
+    // solar_assistant/inverter_1/pv_voltage_2/state: 0
+    // solar_assistant/inverter_1/pv_power_1/state: 165
+    // solar_assistant/inverter_1/device_mode/state: Solar/Battery
+    // solar_assistant/inverter_1/grid_voltage/state: 119.4
+    // solar_assistant/inverter_1/ac_output_frequency/state: 60
+    // solar_assistant/inverter_1/ac_output_voltage/state: 120.1
+    // solar_assistant/inverter_1/pv_power_2/state: 0
+    // solar_assistant/inverter_1/load_power/state: 79
 }

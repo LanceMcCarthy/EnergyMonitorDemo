@@ -1,0 +1,68 @@
+﻿@using EnergyMonitor.Client.Models
+@using System.Collections.ObjectModel
+@using Telerik.Blazor
+@using Telerik.Blazor.Components
+
+<TelerikChart @ref="@DashboardChartRef" Width="100%" Transitions="false" RenderAs="RenderingMode.Canvas">
+    <ChartTooltip Visible="true" />
+    <ChartLegend Position="ChartLegendPosition.Bottom" />
+    <ChartSeriesItems>
+        <ChartSeries Name="Solar"
+                     Data="@SolarPowerData"
+                     Field="@nameof(ChartMqttDataItem.CurrentValue)"
+                     CategoryField="@nameof(ChartMqttDataItem.Timestamp)"
+                     Type="ChartSeriesType.Line"
+                     Axis="PowerAxis" />
+        <ChartSeries Name="Load"
+                     Data="@LoadPowerData"
+                     Field="@nameof(ChartMqttDataItem.CurrentValue)"
+                     CategoryField="@nameof(ChartMqttDataItem.Timestamp)"
+                     Type="ChartSeriesType.Line"
+                     Axis="PowerAxis" />
+        <ChartSeries Name="Battery"
+                     Data="@BatteryPowerData"
+                     Field="@nameof(ChartMqttDataItem.CurrentValue)"
+                     CategoryField="@nameof(ChartMqttDataItem.Timestamp)"
+                     Type="ChartSeriesType.Line"
+                     Axis="PowerAxis" />
+        <ChartSeries Name="Grid"
+                     Data="@GridPowerData"
+                     Field="@nameof(ChartMqttDataItem.CurrentValue)"
+                     CategoryField="@nameof(ChartMqttDataItem.Timestamp)"
+                     Type="ChartSeriesType.Line"
+                     Axis="PowerAxis" />
+    </ChartSeriesItems>
+
+    <ChartCategoryAxes>
+        <ChartCategoryAxis BaseUnit="ChartCategoryAxisBaseUnit.Minutes" Type="ChartCategoryAxisType.Date">
+            <ChartCategoryAxisLabels Format="{0:mm ssss}" />
+        </ChartCategoryAxis>
+    </ChartCategoryAxes>
+
+    <ChartValueAxes>
+        <ChartValueAxis Name="PowerAxis">
+            <ChartValueAxisTitle Text="Power" />
+            <ChartValueAxisLabels Format="{0:N0} W" />
+            <ChartValueAxisMajorGridLines Visible="false" />
+        </ChartValueAxis>
+    </ChartValueAxes>
+</TelerikChart>
+
+
+@code {
+    private TelerikChart? DashboardChartRef { get; set; }
+
+    [Parameter]
+    public ObservableCollection<ChartMqttDataItem> SolarPowerData { get; set; } = new();
+
+    [Parameter]
+    public ObservableCollection<ChartMqttDataItem> LoadPowerData { get; set; } = new();
+
+    [Parameter]
+    public ObservableCollection<ChartMqttDataItem> BatteryPowerData { get; set; } = new();
+
+    [Parameter]
+    public ObservableCollection<ChartMqttDataItem> GridPowerData { get; set; } = new();
+
+    public void Refresh() => DashboardChartRef?.Refresh();
+}

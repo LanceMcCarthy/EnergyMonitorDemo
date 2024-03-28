@@ -1,20 +1,17 @@
 ﻿using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Text;
+using EnergyMonitor.Client.Components.Charts.SystemPower;
 using EnergyMonitor.Client.Models;
-using MQTTnet;
+using Microsoft.AspNetCore.Components;
 using MQTTnet.Client;
-using MQTTnet.Packets;
-using Telerik.Blazor.Components;
 
 namespace EnergyMonitor.Client.Pages;
 
 public partial class Home
 {
-    private MqttFactory? mqttFactory;
-    private IMqttClient? mqttClient;
-    private TelerikChart DashboardChartRef { get; set; } = null!;
-    private bool IsSubscribed { get; set; } = true;
+    [Inject]
+    public MqttUiService MqttService { get; set; } = default!;//injected
+    private SystemPowerChart? SystemPowerChartRef { get; set; }
 
     private ObservableCollection<ChartMqttDataItem> SolarPowerData { get; } = new();
     private ObservableCollection<ChartMqttDataItem> LoadPowerData { get; } = new();
@@ -22,86 +19,29 @@ public partial class Home
     private ObservableCollection<ChartMqttDataItem> GridPowerData { get; } = new();
     private ObservableCollection<GridMqttDataItem> AllData { get; } = new();
 
+    private bool IsSubscribed { get; set; } = true;
     private double BatteryChargePercentage { get; set; } = 0;
     private string CurrentSolar { get; set; } = "0";
     private string CurrentLoad { get; set; } = "0";
     private string CurrentBatteryPowerTotal { get; set; } = "0";
     private string CurrentGridTotal { get; set; } = "0";
-    private string CurrentInverterMode { get; set; } = "...";
+    private string CurrentInverterMode { get; set; } = "Solar/Battery/Grid";
+    private string ChargerSourcePriority { get; set; } = "Solar";
 
     protected override async Task OnInitializedAsync()
     {
-        // Get the required MQTT server values from environment
-        var host = Configuration["MQTT_HOST"];
-        var port = Configuration["MQTT_PORT"];
-
-        if (string.IsNullOrEmpty(host))
-        {
-            throw new ArgumentNullException("MQTT_HOST", "A value for the MQTT_HOST environment variable must be set before starting the application.");
-        }
-
-        if (!int.TryParse(port, out var portNumber))
-        {
-            Trace.WriteLine(
-                "[WARNING] - The value for MQTT_PORT is invalid or empty, double check this is intended. If your MQTT server operates on a specific port, you need to set the MQTT_PORT environment variable.",
-                "Energy Monitor");
-        }
-
-        // Setting Up MQTT stuff
-        await SetupMqtt(host, portNumber);
-    }
-
-    private async Task SetupMqtt(string host, int port)
-    {
-        mqttFactory = new MqttFactory();
-        mqttClient = mqttFactory.CreateMqttClient();
-
-        // Connect to MQTT server
-        var clientOptions = new MqttClientOptionsBuilder()
-            .WithTcpServer(host, port)
-            .Build();
-
-        // Subscribe to message received event BEFORE connecting
-        mqttClient.ApplicationMessageReceivedAsync += OnMessageReceivedAsync;
-
-        // Connect to the MQTT server
-        await mqttClient.ConnectAsync(clientOptions, CancellationToken.None);
-
-        // subscribe to topic (important, this is separated into additional logic so it can be turned on and off)
-        await SubscribeAsync();
-
-        Trace.WriteLine("MqttFactory successfully started!", "Energy Monitor");
-    }
-
-    private async Task SubscribeAsync()
-    {
-        // Filter out the messages to only the topics we want.
-        var mqttSubscribeOptions = mqttFactory?.CreateSubscribeOptionsBuilder()
-            .WithTopicFilter(f => { f.WithTopic("solar_assistant/#"); })
-            .Build();
-
-        // Subscribe with the options
-        await mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None);
-    }
-
-    private async Task UnsubscribeAsync()
-    {
-        var mqttUnsubscribeOptions = mqttFactory?.CreateUnsubscribeOptionsBuilder()
-            .WithTopicFilter(new MqttTopicFilter{Topic = "solar_assistant/#"})
-            .Build();
-
-        await mqttClient.UnsubscribeAsync(mqttUnsubscribeOptions, CancellationToken.None);
+        await MqttService.SetupMqtt(OnMessageReceivedAsync);
     }
 
     public async Task<bool> OnIsSubscribedChanged(bool value)
     {
         if (value)
         {
-            await SubscribeAsync();
+            await MqttService.SubscribeAsync();
         }
         else
         {
-            await UnsubscribeAsync();
+            await MqttService.UnsubscribeAsync();
         }
 
         return IsSubscribed = value;
@@ -109,9 +49,11 @@ public partial class Home
 
     private Task OnMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs e)
     {
-        // ****** Processing a Message ****** //
+        // Processing a Message
 
+        //----------------------------------------------------------------------//
         // **  Step 1 - Get the topic and payload data out of the message
+        //----------------------------------------------------------------------//
 
         // Read the topic string. I return a strong type that we can easily work with it instead of crazy strings.
         var messageTopic = TopicNameHelper.GetTopicName(e.ApplicationMessage.Topic);
@@ -119,19 +61,30 @@ public partial class Home
         // Read the payload. Important! It is in the form of an ArraySegment<byte>, so we need to convert to byte[], then to ASCII.
         var decodedPayload = Encoding.ASCII.GetString(e.ApplicationMessage.PayloadSegment.ToArray());
 
-
-        // **  Step 2 - Now we can do something with that data.
-
-        // Always add to DataGrid
         
-        AllData.Add(new GridMqttDataItem { Topic = $"{messageTopic}", Value = decodedPayload, Timestamp = DateTime.Now });
-        if (AllData.Count > 200) AllData.RemoveAt(0);
+        //----------------------------------------------------------------------//
+        // **  Step 2 - Now we can do something with that data.
+        //----------------------------------------------------------------------//
 
-        // Update the relevant UI element, collection, etc
+        // Add all items to the DataGrid
+
+        AllData.Add(new GridMqttDataItem { Topic = $"{messageTopic}", Value = decodedPayload, Timestamp = DateTime.Now });
+        
+        // Temporary approach to keep the in-memory data to a manageable amount. This should be replaced with SQlite for real app.
+        if (AllData.Count > 200) 
+            AllData.RemoveAt(0);
+
+
+        // Update individual things that are relevant for the specific incoming data point
+
         switch (messageTopic)
         {
             case TopicName.DeviceMode_Inverter1:
                 CurrentInverterMode = decodedPayload;
+                break;
+            
+            case TopicName.ChargerSourcePriority_Inverter1:
+                ChargerSourcePriority = decodedPayload;
                 break;
 
             case TopicName.LoadPower_Inverter1:
@@ -188,7 +141,6 @@ public partial class Home
             case TopicName.AcOutputFrequency_Inverter1:
             case TopicName.AcOutputVoltage_Inverter1:
             case TopicName.PvPower2_Inverter1:
-                break;
             default:
                 break;
         }
@@ -203,6 +155,6 @@ public partial class Home
     private void ItemResize()
     {
         StateHasChanged();
-        DashboardChartRef.Refresh();
+        SystemPowerChartRef?.Refresh();
     }
 }
