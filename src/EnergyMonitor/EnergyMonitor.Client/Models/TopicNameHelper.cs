@@ -48,6 +48,8 @@ public static class TopicNameHelper
             "solar_assistant/total/bus_voltage/state" => TopicName.BusVoltage_Total,
             "solar_assistant/total/grid_energy_in/state" => TopicName.GridEnergyIn_Total,
             "solar_assistant/total/grid_energy_out/state" => TopicName.GridEnergyOut_Total,
+            "solar_assistant/total/load_energy/state" => TopicName.LoadEnergy_Total,
+            "solar_assistant/total/pv_energy/state" => TopicName.PvEnergy_Total,
             "solar_assistant/inverter_1/grid_frequency/state" => TopicName.GridFrequency_Inverter1,
             "solar_assistant/inverter_1/pv_current_1/state" => TopicName.PvCurrent1_Inverter1,
             "solar_assistant/inverter_1/pv_power/state" => TopicName.PvPower_Inverter1,

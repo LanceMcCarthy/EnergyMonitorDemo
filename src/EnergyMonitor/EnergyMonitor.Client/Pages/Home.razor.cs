@@ -143,7 +143,6 @@ public partial class Home
 
             case TopicName.PvPower_Inverter1:
                 var pvCurrent = Convert.ToDouble(decodedPayload);
-                BatteryChargePercentage = pvCurrent;
                 CurrentSolar = $"{pvCurrent}";
                 SolarPowerData.Add(new ChartMqttDataItem { Category = messageTopic, CurrentValue = pvCurrent, Timestamp = DateTime.Now });
                 if (SolarPowerData.Count > 100) SolarPowerData.RemoveAt(0);
@@ -165,12 +164,10 @@ public partial class Home
 
             case TopicName.BatteryStateOfCharge_Total:
                 var batteryCharge = Convert.ToDouble(decodedPayload);
-                // Sometimes the double is a little higher than expected, lets make sure it doesn't go over 100
-                if (batteryCharge > 100)
-                    batteryCharge = 100;
                 BatteryChargePercentage = batteryCharge;
                 break;
-
+            case TopicName.PvEnergy_Total:
+            case TopicName.LoadEnergy_Total:
             case TopicName.BatteryEnergyIn_Total:
             case TopicName.BatteryEnergyOut_Total:
             case TopicName.GridEnergyIn_Total:
