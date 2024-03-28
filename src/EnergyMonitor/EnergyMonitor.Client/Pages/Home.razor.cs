@@ -25,11 +25,11 @@ public partial class Home
     private string CurrentLoad { get; set; } = "0";
     private string CurrentBatteryPowerTotal { get; set; } = "0";
     private string CurrentGridTotal { get; set; } = "0";
-    private string CurrentInverterMode { get; set; } = "...";
+    private string CurrentInverterMode { get; set; } = "Solar/Battery/Grid";
+    private string ChargerSourcePriority { get; set; } = "Solar";
 
     protected override async Task OnInitializedAsync()
     {
-        // Setting Up MQTT stuff
         await MqttService.SetupMqtt(OnMessageReceivedAsync);
     }
 
@@ -49,9 +49,11 @@ public partial class Home
 
     private Task OnMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs e)
     {
-        // ****** Processing a Message ****** //
+        // Processing a Message
 
+        //----------------------------------------------------------------------//
         // **  Step 1 - Get the topic and payload data out of the message
+        //----------------------------------------------------------------------//
 
         // Read the topic string. I return a strong type that we can easily work with it instead of crazy strings.
         var messageTopic = TopicNameHelper.GetTopicName(e.ApplicationMessage.Topic);
@@ -59,19 +61,30 @@ public partial class Home
         // Read the payload. Important! It is in the form of an ArraySegment<byte>, so we need to convert to byte[], then to ASCII.
         var decodedPayload = Encoding.ASCII.GetString(e.ApplicationMessage.PayloadSegment.ToArray());
 
-
-        // **  Step 2 - Now we can do something with that data.
-
-        // Always add to DataGrid
         
-        AllData.Add(new GridMqttDataItem { Topic = $"{messageTopic}", Value = decodedPayload, Timestamp = DateTime.Now });
-        if (AllData.Count > 200) AllData.RemoveAt(0);
+        //----------------------------------------------------------------------//
+        // **  Step 2 - Now we can do something with that data.
+        //----------------------------------------------------------------------//
 
-        // Update the relevant UI element, collection, etc
+        // Add all items to the DataGrid
+
+        AllData.Add(new GridMqttDataItem { Topic = $"{messageTopic}", Value = decodedPayload, Timestamp = DateTime.Now });
+        
+        // Temporary approach to keep the in-memory data to a manageable amount. This should be replaced with SQlite for real app.
+        if (AllData.Count > 200) 
+            AllData.RemoveAt(0);
+
+
+        // Update individual things that are relevant for the specific incoming data point
+
         switch (messageTopic)
         {
             case TopicName.DeviceMode_Inverter1:
                 CurrentInverterMode = decodedPayload;
+                break;
+            
+            case TopicName.ChargerSourcePriority_Inverter1:
+                ChargerSourcePriority = decodedPayload;
                 break;
 
             case TopicName.LoadPower_Inverter1:
@@ -128,8 +141,6 @@ public partial class Home
             case TopicName.AcOutputFrequency_Inverter1:
             case TopicName.AcOutputVoltage_Inverter1:
             case TopicName.PvPower2_Inverter1:
-            case TopicName.ChargerSourcePriority_Inverter1:
-                break;
             default:
                 break;
         }
