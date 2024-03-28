@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Text;
 using EnergyMonitor.Client.Components.Charts.SystemPower;
 using EnergyMonitor.Client.Models;
+using Microsoft.AspNetCore.Components;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Packets;
@@ -12,6 +13,8 @@ namespace EnergyMonitor.Client.Pages;
 
 public partial class Home
 {
+    [Inject]
+    public MqttUiService MqttService { get; set; } = default!;//injected
     private SystemPowerChart? SystemPowerChartRef { get; set; }
 
     private MqttFactory? mqttFactory;
@@ -33,77 +36,19 @@ public partial class Home
 
     protected override async Task OnInitializedAsync()
     {
-        // Get the required MQTT server values from environment
-        var host = Configuration["MQTT_HOST"];
-        var port = Configuration["MQTT_PORT"];
-
-        if (string.IsNullOrEmpty(host))
-        {
-            throw new ArgumentNullException("MQTT_HOST", "A value for the MQTT_HOST environment variable must be set before starting the application.");
-        }
-
-        if (!int.TryParse(port, out var portNumber))
-        {
-            Trace.WriteLine(
-                "[WARNING] - The value for MQTT_PORT is invalid or empty, double check this is intended. If your MQTT server operates on a specific port, you need to set the MQTT_PORT environment variable.",
-                "Energy Monitor");
-        }
-
         // Setting Up MQTT stuff
-        await SetupMqtt(host, portNumber);
-    }
-
-    private async Task SetupMqtt(string host, int port)
-    {
-        mqttFactory = new MqttFactory();
-        mqttClient = mqttFactory.CreateMqttClient();
-
-        // Connect to MQTT server
-        var clientOptions = new MqttClientOptionsBuilder()
-            .WithTcpServer(host, port)
-            .Build();
-
-        // Subscribe to message received event BEFORE connecting
-        mqttClient.ApplicationMessageReceivedAsync += OnMessageReceivedAsync;
-
-        // Connect to the MQTT server
-        await mqttClient.ConnectAsync(clientOptions, CancellationToken.None);
-
-        // subscribe to topic (important, this is separated into additional logic so it can be turned on and off)
-        await SubscribeAsync();
-
-        Trace.WriteLine("MqttFactory successfully started!", "Energy Monitor");
-    }
-
-    private async Task SubscribeAsync()
-    {
-        // Filter out the messages to only the topics we want.
-        var mqttSubscribeOptions = mqttFactory?.CreateSubscribeOptionsBuilder()
-            .WithTopicFilter(f => { f.WithTopic("solar_assistant/#"); })
-            .Build();
-
-        // Subscribe with the options
-        await mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None);
-    }
-
-    private async Task UnsubscribeAsync()
-    {
-        var mqttUnsubscribeOptions = mqttFactory?.CreateUnsubscribeOptionsBuilder()
-            .WithTopicFilter(new MqttTopicFilter{Topic = "solar_assistant/#"})
-            .Build();
-
-        await mqttClient.UnsubscribeAsync(mqttUnsubscribeOptions, CancellationToken.None);
+        await MqttService.SetupMqtt(OnMessageReceivedAsync);
     }
 
     public async Task<bool> OnIsSubscribedChanged(bool value)
     {
         if (value)
         {
-            await SubscribeAsync();
+            await MqttService.SubscribeAsync();
         }
         else
         {
-            await UnsubscribeAsync();
+            await MqttService.UnsubscribeAsync();
         }
 
         return IsSubscribed = value;
