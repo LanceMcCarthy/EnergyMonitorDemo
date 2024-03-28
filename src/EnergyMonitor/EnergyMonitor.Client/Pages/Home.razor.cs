@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Text;
+using EnergyMonitor.Client.Components.Charts.SystemPower;
 using EnergyMonitor.Client.Models;
 using MQTTnet;
 using MQTTnet.Client;
@@ -11,9 +12,10 @@ namespace EnergyMonitor.Client.Pages;
 
 public partial class Home
 {
+    private SystemPowerChart? SystemPowerChartRef { get; set; }
+
     private MqttFactory? mqttFactory;
     private IMqttClient? mqttClient;
-    private TelerikChart DashboardChartRef { get; set; } = null!;
     private bool IsSubscribed { get; set; } = true;
 
     private ObservableCollection<ChartMqttDataItem> SolarPowerData { get; } = new();
@@ -203,6 +205,6 @@ public partial class Home
     private void ItemResize()
     {
         StateHasChanged();
-        DashboardChartRef.Refresh();
+        SystemPowerChartRef?.Refresh();
     }
 }

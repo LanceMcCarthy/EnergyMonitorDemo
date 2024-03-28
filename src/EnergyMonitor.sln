@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34714.143
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnergyMonitor", "EnergyMonitor\EnergyMonitor\EnergyMonitor.csproj", "{F2F951DF-0BA1-4AB3-AEFD-1EC1270A502E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EnergyMonitor", "EnergyMonitor\EnergyMonitor\EnergyMonitor.csproj", "{F2F951DF-0BA1-4AB3-AEFD-1EC1270A502E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnergyMonitor.Client", "EnergyMonitor\EnergyMonitor.Client\EnergyMonitor.Client.csproj", "{3FA2B77B-386E-4AFE-9450-93D3DF29A5E2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EnergyMonitor.Client", "EnergyMonitor\EnergyMonitor.Client\EnergyMonitor.Client.csproj", "{3FA2B77B-386E-4AFE-9450-93D3DF29A5E2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
