@@ -17,6 +17,21 @@ env:
   PROJECT_PATH: 'EnergyMonitor/EnergyMonitor/EnergyMonitor.csproj'
 
 jobs:
+  # Creates a common version number using year.monthday.runnumber for all the builds to use (e.g., 2024.328.4 or 2024.1031.16)
+  generate_tag:
+    runs-on: windows-latest
+    outputs:
+      tag_prefix: ${{ steps.build.outputs.tag_prefix }}
+    steps:
+    - name: Generate tag prefix
+      id: tag-creator
+      run: |
+        build_date=`date +%Y.%m.%d`
+        echo $build_date
+        combined_result="$build_date.${{env.GITHUB_RUN_NUMBER}}"
+        echo $combined_result
+        echo "tag_prefix=$combined_result" >> $GITHUB_OUTPUT
+
   #######################################################################
   #                   .NET SDK CONTAINER BUILD                          #
   #######################################################################
@@ -24,6 +39,8 @@ jobs:
   # Build an image for x64 machines
   build_x64:
     runs-on: ubuntu-22.04
+    needs: [generate_tag]
+    if: needs.generate_tag.outputs.tag_prefix != ''
     permissions:
       contents: read
       packages: write
@@ -51,15 +68,15 @@ jobs:
       id: build
       working-directory: ${{env.WORKING_DIRECTORY}}
       run: |
-        TAG="latest-${{env.target_arch}}"
-
-        dotnet publish ${{env.PROJECT_PATH}} -t:PublishContainer -p PublishProfile=DefaultContainer --arch ${{env.target_arch}} -p ContainerImageTag="$TAG" -p ContainerRepository=${{env.CONTAINER_REPOSITORY}} -p ContainerRegistry=${{env.CONTAINER_REGISTRY}} -p ContainerBaseImage=${{env.CONTAINER_BASE_IMAGE}} --no-restore
-
+        TAG="${{needs.generate_tag.outputs.tag_prefix}}-${{env.target_arch}}"
         echo "build_tag=$TAG" >> $GITHUB_OUTPUT
+        dotnet publish ${{env.PROJECT_PATH}} -t:PublishContainer -p PublishProfile=DefaultContainer --arch ${{env.target_arch}} -p ContainerImageTag="$TAG" -p ContainerRepository=${{env.CONTAINER_REPOSITORY}} -p ContainerRegistry=${{env.CONTAINER_REGISTRY}} -p ContainerBaseImage=${{env.CONTAINER_BASE_IMAGE}} --no-restore
 
   # Build an image for ARM64 machines
   build_arm64:
     runs-on: ubuntu-22.04
+    needs: [generate_tag]
+    if: needs.generate_tag.outputs.tag_prefix != ''
     permissions:
       contents: read
       packages: write
@@ -87,16 +104,15 @@ jobs:
       id: build
       working-directory: ${{env.WORKING_DIRECTORY}}
       run: |
-        TAG="latest-${{env.target_arch}}"
-
-        dotnet publish ${{env.PROJECT_PATH}} -t:PublishContainer -p PublishProfile=DefaultContainer --arch ${{env.target_arch}} -p ContainerImageTag="$TAG" -p ContainerRepository=${{env.CONTAINER_REPOSITORY}} -p ContainerRegistry=${{env.CONTAINER_REGISTRY}} -p ContainerBaseImage=${{env.CONTAINER_BASE_IMAGE}} --no-restore
-
+        TAG="${{needs.generate_tag.outputs.tag_prefix}}-${{env.target_arch}}"
         echo "build_tag=$TAG" >> $GITHUB_OUTPUT
+        dotnet publish ${{env.PROJECT_PATH}} -t:PublishContainer -p PublishProfile=DefaultContainer --arch ${{env.target_arch}} -p ContainerImageTag="$TAG" -p ContainerRepository=${{env.CONTAINER_REPOSITORY}} -p ContainerRegistry=${{env.CONTAINER_REGISTRY}} -p ContainerBaseImage=${{env.CONTAINER_BASE_IMAGE}} --no-restore
 
   # Combine images into single manifest (.NET SDK doesn't support multi-arch container builds yet)
   publish_combined_manifest:
     runs-on: ubuntu-22.04
     needs: [build_x64, build_arm64]
+    if: needs.build_x64.outputs.build_tag != '' && needs.build_arm64.outputs.build_tag != ''
     permissions:
       contents: read
       packages: write
@@ -126,6 +142,8 @@ jobs:
   #########################################################
   build_windows:
     runs-on: windows-2022
+    needs: [generate_tag]
+    if: needs.generate_tag.outputs.tag_prefix != ''
     env:
       RID: win-x64
       WEBAPP_PACKAGE_PATH: 'myapp'
@@ -154,7 +172,7 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: 'energymonitor_net8.0-win-x64'
+        name: '${{needs.generate_tag.outputs.tag_prefix}}_net8.0-${{env.RID}}'
         path: '${{env.WORKING_DIRECTORY}}\EnergyMonitor\EnergyMonitor\${{env.WEBAPP_PACKAGE_PATH}}'
 
     # There's no azure app, if it is decided to create one, I need the generate publish-profile (service principal option is better)
