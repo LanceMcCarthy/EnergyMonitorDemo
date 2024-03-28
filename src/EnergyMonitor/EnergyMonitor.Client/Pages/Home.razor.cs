@@ -1,13 +1,9 @@
 ﻿using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Text;
 using EnergyMonitor.Client.Components.Charts.SystemPower;
 using EnergyMonitor.Client.Models;
 using Microsoft.AspNetCore.Components;
-using MQTTnet;
 using MQTTnet.Client;
-using MQTTnet.Packets;
-using Telerik.Blazor.Components;
 
 namespace EnergyMonitor.Client.Pages;
 
@@ -17,16 +13,13 @@ public partial class Home
     public MqttUiService MqttService { get; set; } = default!;//injected
     private SystemPowerChart? SystemPowerChartRef { get; set; }
 
-    private MqttFactory? mqttFactory;
-    private IMqttClient? mqttClient;
-    private bool IsSubscribed { get; set; } = true;
-
     private ObservableCollection<ChartMqttDataItem> SolarPowerData { get; } = new();
     private ObservableCollection<ChartMqttDataItem> LoadPowerData { get; } = new();
     private ObservableCollection<ChartMqttDataItem> BatteryPowerData { get; } = new();
     private ObservableCollection<ChartMqttDataItem> GridPowerData { get; } = new();
     private ObservableCollection<GridMqttDataItem> AllData { get; } = new();
 
+    private bool IsSubscribed { get; set; } = true;
     private double BatteryChargePercentage { get; set; } = 0;
     private string CurrentSolar { get; set; } = "0";
     private string CurrentLoad { get; set; } = "0";
@@ -135,6 +128,7 @@ public partial class Home
             case TopicName.AcOutputFrequency_Inverter1:
             case TopicName.AcOutputVoltage_Inverter1:
             case TopicName.PvPower2_Inverter1:
+            case TopicName.ChargerSourcePriority_Inverter1:
                 break;
             default:
                 break;
