@@ -1,3 +1,4 @@
+using EnergyMonitor;
 using EnergyMonitor.Client.Pages;
 using EnergyMonitor.Components;
 
@@ -14,6 +15,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();
 
 builder.Services.AddTelerikBlazor();
+builder.Services.AddScoped<MqttUiService>();
 
 var app = builder.Build();
 
