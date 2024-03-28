@@ -1,4 +1,6 @@
 ﻿@page "/"
+@using EnergyMonitor.Client.Components.Grids.All
+@using EnergyMonitor.Client.Components.Indicators
 @using EnergyMonitor.Client.Models
 @using EnergyMonitor.Client.Components.Charts.SystemPower
 
@@ -24,46 +26,27 @@
         <TileLayoutItems>
             <TileLayoutItem HeaderText="Solar (PV)" RowSpan="1" ColSpan="1">
                 <Content>
-                    <div style="font-size: 75px;color:#37B400;text-align:center">@((MarkupString)CurrentSolar)</div>
-                    <div style="text-align:center">Solar (now)</div>
+                    <GenericDisplay Value="@CurrentSolar" Color="#37B400" Subtitle="Solar (now)"/>
                 </Content>
             </TileLayoutItem>
             <TileLayoutItem HeaderText="Battery" RowSpan="1" ColSpan="1">
                 <Content>
-                    <div style="font-size: 75px; color: #F31700; text-align: center ">@((MarkupString)CurrentBatteryPowerTotal)</div>
-                    <div style="text-align:center">Battery (now)</div>
+                    <GenericDisplay Value="@CurrentBatteryPowerTotal" Color="#F31700" Subtitle="Battery (now)"/>
                 </Content>
             </TileLayoutItem>
             <TileLayoutItem HeaderText="Grid" RowSpan="1" ColSpan="1">
                 <Content>
-                    <div style="font-size: 75px; color: #FFC000; text-align: center ">@((MarkupString)CurrentGridTotal)</div>
-                    <div style="text-align:center">Grid (now)</div>
+                    <GenericDisplay Value="@CurrentGridTotal" Color="#FFC000" Subtitle="Grid (now)"/>
                 </Content>
             </TileLayoutItem>
             <TileLayoutItem HeaderText="Load" RowSpan="1" ColSpan="1">
                 <Content>
-                    <div style="font-size: 75px; color: #FFC000; text-align: center ">@((MarkupString)CurrentLoad)</div>
-                    <div style="text-align:center">Load (now)</div>
+                    <GenericDisplay Value="@CurrentLoad" Color="#FFC000" Subtitle="Load (now)"/>
                 </Content>
             </TileLayoutItem>
             <TileLayoutItem HeaderText="Battery" RowSpan="1" ColSpan="1">
                 <Content>
-                    <TelerikArcGauge Width="150px" Height="120px">
-                        <ArcGaugeCenterLabel>
-                            <Template>
-                                <div style="font-size:30px;color:#0058E9">
-                                    <strong>@(context.Pointers[0].Value)%</strong>
-                                </div>
-                            </Template>
-                        </ArcGaugeCenterLabel>
-                        <ArcGaugeScales>
-                            <ArcGaugeScale Min="0" Max="100" />
-                        </ArcGaugeScales>
-                        <ArcGaugePointers>
-                            <ArcGaugePointer Value="@BatteryChargePercentage" Color="#0058E9"/>
-                        </ArcGaugePointers>
-                    </TelerikArcGauge>
-                    <div style="text-align:center">Battery Charge</div>
+                    <BatteryGauge BatteryChargePercentage="@BatteryChargePercentage"/>
                 </Content>
             </TileLayoutItem>
             <TileLayoutItem Class="chart-tile" RowSpan="2" ColSpan="4">
@@ -84,13 +67,7 @@
                     <span style="font-size:16px;font-weight:400">Message History</span>
                 </HeaderTemplate>
                 <Content>
-                    <TelerikGrid Data="@AllData" Height="400px">
-                        <GridColumns>
-                            <GridColumn Field="@nameof(GridMqttDataItem.Timestamp)" Width="250px" />
-                            <GridColumn Field="@nameof(GridMqttDataItem.Topic)" />
-                            <GridColumn Field="@nameof(GridMqttDataItem.Value)" />
-                        </GridColumns>
-                    </TelerikGrid>
+                    <AllDataGrid Data="@AllData"></AllDataGrid>
                 </Content>
             </TileLayoutItem>
         </TileLayoutItems>

@@ -1,0 +1,17 @@
+﻿<div style="font-size: 75px;color:@Color;text-align:center">@Value</div>
+@if (Subtitle is not null)
+{
+    <div style="text-align:center">@Subtitle</div>
+}
+
+
+@code {
+    [Parameter]
+    public string Value { get; set; } = "0";
+
+    [Parameter]
+    public string? Subtitle { get; set; }
+
+    [Parameter]
+    public string? Color { get; set; } = "#000";
+}
