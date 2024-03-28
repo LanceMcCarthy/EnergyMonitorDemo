@@ -21,7 +21,7 @@ jobs:
   generate_tag:
     runs-on: ubuntu-22.04
     outputs:
-      tag_prefix: ${{ steps.build.outputs.tag_prefix }}
+      tag_prefix: ${{ steps.tag-creator.outputs.tag_prefix }}
     steps:
     - name: Generate tag prefix
       id: tag-creator
