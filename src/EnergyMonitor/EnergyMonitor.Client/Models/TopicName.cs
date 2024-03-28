@@ -14,6 +14,8 @@ public enum TopicName
     BusVoltage_Total,
     GridEnergyIn_Total,
     GridEnergyOut_Total,
+    LoadEnergy_Total,
+    PvEnergy_Total,
     GridFrequency_Inverter1,
     PvCurrent1_Inverter1,
     PvPower_Inverter1,
