@@ -17,6 +17,19 @@ env:
   PROJECT_PATH: 'EnergyMonitor/EnergyMonitor/EnergyMonitor.csproj'
 
 jobs:
+  # Creates a common version number using year.monthday.runnumber for all the builds to use (e.g., 2024.328.4 or 2024.1031.16)
+  generate_tag:
+    runs-on: ubuntu-22.04
+    outputs:
+      tag_prefix: ${{ steps.build.outputs.tag_prefix }}
+    steps:
+    - name: Generate tag prefix
+      id: tag-creator
+      run: |
+        buildDay=`date +%Y.%m.%d`
+        tags="$buildDay.$GITHUB_RUN_NUMBER"
+        echo "tag_prefix=$tags" >> $GITHUB_OUTPUT
+
   #######################################################################
   #                   .NET SDK CONTAINER BUILD                          #
   #######################################################################
@@ -24,6 +37,7 @@ jobs:
   # Build an image for x64 machines
   build_x64:
     runs-on: ubuntu-22.04
+    needs: [generate_tag]
     permissions:
       contents: read
       packages: write
@@ -51,15 +65,16 @@ jobs:
       id: build
       working-directory: ${{env.WORKING_DIRECTORY}}
       run: |
-        TAG="latest-${{env.target_arch}}"
-
-        dotnet publish ${{env.PROJECT_PATH}} -t:PublishContainer -p PublishProfile=DefaultContainer --arch ${{env.target_arch}} -p ContainerImageTag="$TAG" -p ContainerRepository=${{env.CONTAINER_REPOSITORY}} -p ContainerRegistry=${{env.CONTAINER_REGISTRY}} -p ContainerBaseImage=${{env.CONTAINER_BASE_IMAGE}} --no-restore
-
+        TAG="${{env.TAG_PREFIX}}-${{env.target_arch}}"
         echo "build_tag=$TAG" >> $GITHUB_OUTPUT
+        dotnet publish ${{env.PROJECT_PATH}} -t:PublishContainer -p PublishProfile=DefaultContainer --arch ${{env.target_arch}} -p ContainerImageTag="$TAG" -p ContainerRepository=${{env.CONTAINER_REPOSITORY}} -p ContainerRegistry=${{env.CONTAINER_REGISTRY}} -p ContainerBaseImage=${{env.CONTAINER_BASE_IMAGE}} --no-restore
+      env:
+        TAG_PREFIX: ${{needs.generate_tag.outputs.tag_prefix}}
 
   # Build an image for ARM64 machines
   build_arm64:
     runs-on: ubuntu-22.04
+    needs: [generate_tag]
     permissions:
       contents: read
       packages: write
@@ -87,11 +102,11 @@ jobs:
       id: build
       working-directory: ${{env.WORKING_DIRECTORY}}
       run: |
-        TAG="latest-${{env.target_arch}}"
-
-        dotnet publish ${{env.PROJECT_PATH}} -t:PublishContainer -p PublishProfile=DefaultContainer --arch ${{env.target_arch}} -p ContainerImageTag="$TAG" -p ContainerRepository=${{env.CONTAINER_REPOSITORY}} -p ContainerRegistry=${{env.CONTAINER_REGISTRY}} -p ContainerBaseImage=${{env.CONTAINER_BASE_IMAGE}} --no-restore
-
+        TAG="${{env.TAG_PREFIX}}-${{env.target_arch}}"
         echo "build_tag=$TAG" >> $GITHUB_OUTPUT
+        dotnet publish ${{env.PROJECT_PATH}} -t:PublishContainer -p PublishProfile=DefaultContainer --arch ${{env.target_arch}} -p ContainerImageTag="$TAG" -p ContainerRepository=${{env.CONTAINER_REPOSITORY}} -p ContainerRegistry=${{env.CONTAINER_REGISTRY}} -p ContainerBaseImage=${{env.CONTAINER_BASE_IMAGE}} --no-restore
+      env:
+        TAG_PREFIX: ${{needs.generate_tag.outputs.tag_prefix}}
 
   # Combine images into single manifest (.NET SDK doesn't support multi-arch container builds yet)
   publish_combined_manifest:
@@ -126,6 +141,7 @@ jobs:
   #########################################################
   build_windows:
     runs-on: windows-2022
+    needs: [generate_tag]
     env:
       RID: win-x64
       WEBAPP_PACKAGE_PATH: 'myapp'
@@ -150,12 +166,15 @@ jobs:
 
     - name: Build Project
       working-directory: ${{env.WORKING_DIRECTORY}}
-      run: dotnet publish ${{env.PROJECT_PATH}} -c Release -r ${{env.RID}} --no-restore --property:PublishDir='${{env.WEBAPP_PACKAGE_PATH}}'
+      run: |
+        dotnet publish ${{env.PROJECT_PATH}} -c Release -r ${{env.RID}} --no-restore --property:PublishDir='${{env.WEBAPP_PACKAGE_PATH}}'
 
     - uses: actions/upload-artifact@v4
       with:
-        name: 'energymonitor_net8.0-win-x64'
+        name: '${{env.TAG_PREFIX}}_note8.0-${{env.RID}}'
         path: '${{env.WORKING_DIRECTORY}}\EnergyMonitor\EnergyMonitor\${{env.WEBAPP_PACKAGE_PATH}}'
+      env:
+        TAG_PREFIX: ${{needs.generate_tag.outputs.tag_prefix}}
 
     # There's no azure app, if it is decided to create one, I need the generate publish-profile (service principal option is better)
     # https://learn.microsoft.com/en-us/azure/app-service/deploy-github-actions?tabs=userlevel%2Caspnetcore#1-generate-deployment-credentials
