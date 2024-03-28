@@ -1,16 +1,19 @@
 ﻿@page "/"
-@using System.Collections.ObjectModel
-@using System.Diagnostics
-@using System.Text
 @using EnergyMonitor.Client.Models
-@using MQTTnet
-@using MQTTnet.Client
 @inject IConfiguration Configuration
 
 <div class="k-d-flex-col k-justify-content-center">
-    <div style="text-align:center">@((MarkupString)CurrentInverterMode)</div>
-
-    <TelerikTileLayout Columns="4"
+    <div style="text-align:center">
+        Inverter Mode: @((MarkupString)CurrentInverterMode)
+        
+        <TelerikSwitch OnLabel="Listening"
+                       OffLabel="Paused"
+                       Value="@IsSubscribed"
+                       ValueChanged="@((bool val) => OnIsSubscribedChanged(val))"
+                       Width="95px"/>
+    </div>
+    
+    <TelerikTileLayout Columns="5"
                        RowHeight="230px"
                        ColumnWidth="25%"
                        Reorderable="true"
@@ -19,25 +22,31 @@
         <TileLayoutItems>
             <TileLayoutItem HeaderText="Solar (PV)" RowSpan="1" ColSpan="1">
                 <Content>
-                    <div style="font-size: 85px;color:#37B400;text-align:center">@((MarkupString)CurrentSolar)</div>
-                    <div style="text-align:center">Solar (current)</div>
+                    <div style="font-size: 75px;color:#37B400;text-align:center">@((MarkupString)CurrentSolar)</div>
+                    <div style="text-align:center">Solar (now)</div>
                 </Content>
             </TileLayoutItem>
             <TileLayoutItem HeaderText="Battery" RowSpan="1" ColSpan="1">
                 <Content>
-                    <div style="font-size: 85px; color: #F31700; text-align: center ">@((MarkupString)CurrentBattery)</div>
-                    <div style="text-align:center">Battery (current)</div>
+                    <div style="font-size: 75px; color: #F31700; text-align: center ">@((MarkupString)CurrentBatteryPowerTotal)</div>
+                    <div style="text-align:center">Battery (now)</div>
                 </Content>
             </TileLayoutItem>
             <TileLayoutItem HeaderText="Grid" RowSpan="1" ColSpan="1">
                 <Content>
-                    <div style="font-size: 85px; color: #FFC000; text-align: center ">@((MarkupString)CurrentGrid)</div>
-                    <div style="text-align:center">Grid (current)</div>
+                    <div style="font-size: 75px; color: #FFC000; text-align: center ">@((MarkupString)CurrentGridTotal)</div>
+                    <div style="text-align:center">Grid (now)</div>
                 </Content>
             </TileLayoutItem>
             <TileLayoutItem HeaderText="Load" RowSpan="1" ColSpan="1">
                 <Content>
-                    <TelerikArcGauge Width="190px" Height="120px">
+                    <div style="font-size: 75px; color: #FFC000; text-align: center ">@((MarkupString)CurrentLoad)</div>
+                    <div style="text-align:center">Load (now)</div>
+                </Content>
+            </TileLayoutItem>
+            <TileLayoutItem HeaderText="Battery" RowSpan="1" ColSpan="1">
+                <Content>
+                    <TelerikArcGauge Width="150px" Height="120px">
                         <ArcGaugeCenterLabel>
                             <Template>
                                 <div style="font-size:30px;color:#0058E9">
@@ -46,13 +55,13 @@
                             </Template>
                         </ArcGaugeCenterLabel>
                         <ArcGaugeScales>
-                            <ArcGaugeScale Min="0" Max="200"/>
+                            <ArcGaugeScale Min="0" Max="100" />
                         </ArcGaugeScales>
                         <ArcGaugePointers>
-                            <ArcGaugePointer Value="@ArcGaugeValue" Color="#0058E9"/>
+                            <ArcGaugePointer Value="@BatteryChargePercentage" Color="#0058E9"/>
                         </ArcGaugePointers>
                     </TelerikArcGauge>
-                    <div style="text-align:center">Load (current)</div>
+                    <div style="text-align:center">Battery Charge</div>
                 </Content>
             </TileLayoutItem>
             <TileLayoutItem Class="chart-tile" RowSpan="2" ColSpan="4">
@@ -106,12 +115,18 @@
                     </TelerikChart>
                 </Content>
             </TileLayoutItem>
-            <TileLayoutItem RowSpan="3" ColSpan="4">
+            <TileLayoutItem RowSpan="3" ColSpan="5">
                 <HeaderTemplate>
-                    <span style="font-size:16px;font-weight:400">Data Grid will Go Here</span>
+                    <span style="font-size:16px;font-weight:400">Message History</span>
                 </HeaderTemplate>
                 <Content>
-
+                    <TelerikGrid Data="@AllData" Height="400px">
+                        <GridColumns>
+                            <GridColumn Field="@nameof(GridMqttDataItem.Timestamp)" Width="250px" />
+                            <GridColumn Field="@nameof(GridMqttDataItem.Topic)" />
+                            <GridColumn Field="@nameof(GridMqttDataItem.Value)" />
+                        </GridColumns>
+                    </TelerikGrid>
                 </Content>
             </TileLayoutItem>
         </TileLayoutItems>

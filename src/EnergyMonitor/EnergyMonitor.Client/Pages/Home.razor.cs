@@ -4,23 +4,29 @@ using System.Text;
 using EnergyMonitor.Client.Models;
 using MQTTnet;
 using MQTTnet.Client;
+using MQTTnet.Packets;
 using Telerik.Blazor.Components;
 
 namespace EnergyMonitor.Client.Pages;
 
 public partial class Home
 {
+    private MqttFactory? mqttFactory;
     private IMqttClient? mqttClient;
     private TelerikChart DashboardChartRef { get; set; } = null!;
+    private bool IsSubscribed { get; set; } = true;
+
     private ObservableCollection<ChartMqttDataItem> SolarPowerData { get; } = new();
     private ObservableCollection<ChartMqttDataItem> LoadPowerData { get; } = new();
     private ObservableCollection<ChartMqttDataItem> BatteryPowerData { get; } = new();
     private ObservableCollection<ChartMqttDataItem> GridPowerData { get; } = new();
-    private double ArcGaugeValue { get; set; } = 0;
+    private ObservableCollection<GridMqttDataItem> AllData { get; } = new();
+
+    private double BatteryChargePercentage { get; set; } = 0;
     private string CurrentSolar { get; set; } = "0";
     private string CurrentLoad { get; set; } = "0";
-    private string CurrentBattery { get; set; } = "0";
-    private string CurrentGrid { get; set; } = "0";
+    private string CurrentBatteryPowerTotal { get; set; } = "0";
+    private string CurrentGridTotal { get; set; } = "0";
     private string CurrentInverterMode { get; set; } = "...";
 
     protected override async Task OnInitializedAsync()
@@ -41,40 +47,64 @@ public partial class Home
                 "Energy Monitor");
         }
 
-        // Let's get our feet wet!
+        // Setting Up MQTT stuff
         await SetupMqtt(host, portNumber);
     }
 
     private async Task SetupMqtt(string host, int port)
     {
-        var mqttFactory = new MqttFactory();
+        mqttFactory = new MqttFactory();
         mqttClient = mqttFactory.CreateMqttClient();
 
-        // ***** Operation 1 - Connect to MQTT server ***** //
-
+        // Connect to MQTT server
         var clientOptions = new MqttClientOptionsBuilder()
             .WithTcpServer(host, port)
             .Build();
 
-        //    1.a - Subscribe to message received event BEFORE connecting
+        // Subscribe to message received event BEFORE connecting
         mqttClient.ApplicationMessageReceivedAsync += OnMessageReceivedAsync;
 
-        //    1.b - Connect to the MQTT server
+        // Connect to the MQTT server
         await mqttClient.ConnectAsync(clientOptions, CancellationToken.None);
 
+        // subscribe to topic (important, this is separated into additional logic so it can be turned on and off)
+        await SubscribeAsync();
 
-        // ***** Operation 2 - Subscribe to a topic ***** //
+        Trace.WriteLine("MqttFactory successfully started!", "Energy Monitor");
+    }
 
-        //    2.a - Filter out the messages to only the topics we want.
-        var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder()
+    private async Task SubscribeAsync()
+    {
+        // Filter out the messages to only the topics we want.
+        var mqttSubscribeOptions = mqttFactory?.CreateSubscribeOptionsBuilder()
             .WithTopicFilter(f => { f.WithTopic("solar_assistant/#"); })
             .Build();
 
-        //    2.b - Subscribe to the server for those topics
+        // Subscribe with the options
         await mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None);
+    }
 
+    private async Task UnsubscribeAsync()
+    {
+        var mqttUnsubscribeOptions = mqttFactory?.CreateUnsubscribeOptionsBuilder()
+            .WithTopicFilter(new MqttTopicFilter{Topic = "solar_assistant/#"})
+            .Build();
 
-        Trace.WriteLine("MqttFactory successfully started!", "Energy Monitor");
+        await mqttClient.UnsubscribeAsync(mqttUnsubscribeOptions, CancellationToken.None);
+    }
+
+    public async Task<bool> OnIsSubscribedChanged(bool value)
+    {
+        if (value)
+        {
+            await SubscribeAsync();
+        }
+        else
+        {
+            await UnsubscribeAsync();
+        }
+
+        return IsSubscribed = value;
     }
 
     private Task OnMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs e)
@@ -92,6 +122,11 @@ public partial class Home
 
         // **  Step 2 - Now we can do something with that data.
 
+        // Always add to DataGrid
+        
+        AllData.Add(new GridMqttDataItem { Topic = $"{messageTopic}", Value = decodedPayload, Timestamp = DateTime.Now });
+        if (AllData.Count > 200) AllData.RemoveAt(0);
+
         // Update the relevant UI element, collection, etc
         switch (messageTopic)
         {
@@ -108,7 +143,7 @@ public partial class Home
 
             case TopicName.PvPower_Inverter1:
                 var pvCurrent = Convert.ToDouble(decodedPayload);
-                ArcGaugeValue = pvCurrent;
+                BatteryChargePercentage = pvCurrent;
                 CurrentSolar = $"{pvCurrent}";
                 SolarPowerData.Add(new ChartMqttDataItem { Category = messageTopic, CurrentValue = pvCurrent, Timestamp = DateTime.Now });
                 if (SolarPowerData.Count > 100) SolarPowerData.RemoveAt(0);
@@ -116,19 +151,30 @@ public partial class Home
 
             case TopicName.BatteryPower_Total:
                 var batteryPower = Convert.ToDouble(decodedPayload);
-                CurrentBattery = $"{batteryPower}";
+                CurrentBatteryPowerTotal = $"{batteryPower}";
                 BatteryPowerData.Add(new ChartMqttDataItem { Category = messageTopic, CurrentValue = batteryPower, Timestamp = DateTime.Now });
                 if (BatteryPowerData.Count > 100) SolarPowerData.RemoveAt(0);
                 break;
 
             case TopicName.GridPower_Inverter1:
                 var gridPower = Convert.ToDouble(decodedPayload);
-                CurrentGrid = $"{gridPower}";
+                CurrentGridTotal = $"{gridPower}";
                 GridPowerData.Add(new ChartMqttDataItem { Category = messageTopic, CurrentValue = gridPower, Timestamp = DateTime.Now });
                 if (GridPowerData.Count > 100) GridPowerData.RemoveAt(0);
                 break;
 
             case TopicName.BatteryStateOfCharge_Total:
+                var batteryCharge = Convert.ToDouble(decodedPayload);
+                // Sometimes the double is a little higher than expected, lets make sure it doesn't go over 100
+                if (batteryCharge > 100)
+                    batteryCharge = 100;
+                BatteryChargePercentage = batteryCharge;
+                break;
+
+            case TopicName.BatteryEnergyIn_Total:
+            case TopicName.BatteryEnergyOut_Total:
+            case TopicName.GridEnergyIn_Total:
+            case TopicName.GridEnergyOut_Total:
             case TopicName.BusVoltage_Total:
             case TopicName.GridFrequency_Inverter1:
             case TopicName.PvCurrent1_Inverter1:
