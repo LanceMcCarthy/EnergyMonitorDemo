@@ -9,7 +9,11 @@ public enum TopicName
 {
     BatteryPower_Total,
     BatteryStateOfCharge_Total,
+    BatteryEnergyIn_Total,
+    BatteryEnergyOut_Total,
     BusVoltage_Total,
+    GridEnergyIn_Total,
+    GridEnergyOut_Total,
     GridFrequency_Inverter1,
     PvCurrent1_Inverter1,
     PvPower_Inverter1,
