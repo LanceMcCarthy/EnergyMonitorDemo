@@ -1,9 +1,9 @@
-﻿using MQTTnet.Client;
+﻿using System.Diagnostics;
 using MQTTnet;
-using System.Diagnostics;
+using MQTTnet.Client;
 using MQTTnet.Packets;
 
-namespace EnergyMonitor
+namespace EnergyMonitor.Client.Services
 {
     public class MqttUiService(IConfiguration config)
     {

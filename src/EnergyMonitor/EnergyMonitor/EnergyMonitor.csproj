@@ -11,6 +11,11 @@
         <ProjectReference Include="..\EnergyMonitor.Client\EnergyMonitor.Client.csproj" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.0" />
         <PackageReference Include="Telerik.UI.for.Blazor" Version="5.1.1" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.3" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.3">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
   </ItemGroup>
 
 </Project>
