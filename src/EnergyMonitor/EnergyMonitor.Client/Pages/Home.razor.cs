@@ -2,8 +2,10 @@
 using System.Text;
 using EnergyMonitor.Client.Components.Charts.SystemPower;
 using EnergyMonitor.Client.Models;
+using EnergyMonitor.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MQTTnet.Client;
+using Telerik.DataSource.Extensions;
 
 namespace EnergyMonitor.Client.Pages;
 
@@ -11,14 +13,17 @@ public partial class Home
 {
     [Inject]
     public MqttUiService MqttService { get; set; } = default!;//injected
-    private SystemPowerChart? SystemPowerChartRef { get; set; }
+
+    [Inject]
+    public MessagesDataService DataService { get; set; } = default!;//injected
 
     private ObservableCollection<ChartMqttDataItem> SolarPowerData { get; } = new();
     private ObservableCollection<ChartMqttDataItem> LoadPowerData { get; } = new();
     private ObservableCollection<ChartMqttDataItem> BatteryPowerData { get; } = new();
     private ObservableCollection<ChartMqttDataItem> GridPowerData { get; } = new();
-    private ObservableCollection<GridMqttDataItem> AllData { get; } = new();
+    private ObservableCollection<MqttDataItem> AllData { get; } = new();
 
+    private SystemPowerChart? SystemPowerChartRef { get; set; }
     private bool IsSubscribed { get; set; } = true;
     private double BatteryChargePercentage { get; set; } = 0;
     private string CurrentSolar { get; set; } = "0";
@@ -30,6 +35,16 @@ public partial class Home
 
     protected override async Task OnInitializedAsync()
     {
+        // Load up database data
+        var items = await DataService.GetMeasurementsAsync();
+
+        AllData.AddRange(items);
+
+        foreach (var item in items)
+        {
+            ProcessDataItem(item.Value, TopicNameHelper.GetTopicName(item.Topic));
+        }
+
         await MqttService.SetupMqtt(OnMessageReceivedAsync);
     }
 
@@ -61,22 +76,34 @@ public partial class Home
         // Read the payload. Important! It is in the form of an ArraySegment<byte>, so we need to convert to byte[], then to ASCII.
         var decodedPayload = Encoding.ASCII.GetString(e.ApplicationMessage.PayloadSegment.ToArray());
 
-        
+        // DATABASE SAVE - Add to database
+        DataService.AddMeasurementAsync(new MqttDataItem { Topic = e.ApplicationMessage.Topic, Value = decodedPayload, Timestamp = DateTime.Now }).ConfigureAwait(false);
+
         //----------------------------------------------------------------------//
         // **  Step 2 - Now we can do something with that data.
         //----------------------------------------------------------------------//
 
-        // Add all items to the DataGrid
-
-        AllData.Add(new GridMqttDataItem { Topic = $"{messageTopic}", Value = decodedPayload, Timestamp = DateTime.Now });
+        // Create item for database and Grid use
+        var item = new MqttDataItem { Topic = $"{messageTopic}", Value = decodedPayload, Timestamp = DateTime.Now };
         
-        // Temporary approach to keep the in-memory data to a manageable amount. This should be replaced with SQlite for real app.
+        // Add item to the DataGrid items source and keep in-memory collection data to a manageable amount.
         if (AllData.Count > 200) 
             AllData.RemoveAt(0);
 
+        AllData.Add(item);
 
-        // Update individual things that are relevant for the specific incoming data point
 
+        // Update individual collections based on topic
+        ProcessDataItem(decodedPayload, messageTopic);
+
+        // Update UI
+        InvokeAsync(StateHasChanged);
+
+        return Task.CompletedTask;
+    }
+
+    private void ProcessDataItem(string decodedPayload, TopicName messageTopic)
+    {
         switch (messageTopic)
         {
             case TopicName.DeviceMode_Inverter1:
@@ -144,12 +171,6 @@ public partial class Home
             default:
                 break;
         }
-
-        // TODO - ED - Do we really need to update the entire UI just for one value change?
-        // Why can't we just update individual elements in the switch statement?
-        InvokeAsync(StateHasChanged);
-
-        return Task.CompletedTask;
     }
 
     private void ItemResize()
