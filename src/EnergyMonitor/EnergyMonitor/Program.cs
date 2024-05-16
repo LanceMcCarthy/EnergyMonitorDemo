@@ -1,6 +1,8 @@
-using EnergyMonitor;
 using EnergyMonitor.Client.Pages;
+using EnergyMonitor.Client.Services;
 using EnergyMonitor.Components;
+using Microsoft.EntityFrameworkCore;
+using EnergyMonitor.Client.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,13 +11,18 @@ builder.Services.AddCors(options =>
     options.AddPolicy(name: "_myAllowAllOrigins", policy  => { policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin(); });
 });
 
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
 builder.Services.AddTelerikBlazor();
+
+builder.Services.AddDbContext<MeasurementsDbContext>(o => { o.UseSqlite("Data Source = Measurements.db", b => b.MigrationsAssembly("EnergyMonitor")); });
+
 builder.Services.AddScoped<MqttUiService>();
+builder.Services.AddScoped<MessagesDataService>();
 
 var app = builder.Build();
 

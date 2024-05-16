@@ -172,7 +172,7 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: '${{env.TAG_PREFIX}}_note8.0-${{env.RID}}'
+        name: '${{env.TAG_PREFIX}}_net8.0-${{env.RID}}'
         path: '${{env.WORKING_DIRECTORY}}\EnergyMonitor\EnergyMonitor\${{env.WEBAPP_PACKAGE_PATH}}'
       env:
         TAG_PREFIX: ${{needs.generate_tag.outputs.tag_prefix}}

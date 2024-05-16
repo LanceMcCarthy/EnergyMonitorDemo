@@ -2,13 +2,13 @@
 @using EnergyMonitor.Client.Models
 <TelerikGrid Data="@Data" Height="400px">
     <GridColumns>
-        <GridColumn Field="@nameof(GridMqttDataItem.Timestamp)" Width="250px" />
-        <GridColumn Field="@nameof(GridMqttDataItem.Topic)" />
-        <GridColumn Field="@nameof(GridMqttDataItem.Value)" />
+        <GridColumn Field="@nameof(MqttDataItem.Timestamp)" Width="250px" />
+        <GridColumn Field="@nameof(MqttDataItem.Topic)" />
+        <GridColumn Field="@nameof(MqttDataItem.Value)" />
     </GridColumns>
 </TelerikGrid>
 
 @code{
         [Parameter]
-        public ObservableCollection<GridMqttDataItem> Data { get; set; } = new();
+        public ObservableCollection<MqttDataItem> Data { get; set; } = new();
 }
