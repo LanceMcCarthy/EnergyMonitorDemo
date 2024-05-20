@@ -5,6 +5,8 @@ namespace EnergyMonitor.Client.Services
 {
     public class MessagesDataService(MeasurementsDbContext dbContext)
     {
+        private DateTime lastSaved = DateTime.Now;
+
         public async Task<List<MqttDataItem>> GetMeasurementsAsync()
         {
             return await dbContext.Measurements.ToListAsync();
@@ -16,7 +18,7 @@ namespace EnergyMonitor.Client.Services
             {
                 dbContext.Measurements.Add(dataItem);
 
-                await dbContext.SaveChangesAsync();
+                await this.SaveRecentChangesAsync();
             }
             catch (Exception)
             {
@@ -36,7 +38,7 @@ namespace EnergyMonitor.Client.Services
                 {
                     dbContext.Update(item);
 
-                    await dbContext.SaveChangesAsync();
+                    await this.SaveRecentChangesAsync();
                 }
             }
             catch (Exception)
@@ -53,11 +55,20 @@ namespace EnergyMonitor.Client.Services
             {
                 dbContext.Measurements.Remove(item);
 
-                await dbContext.SaveChangesAsync();
+                await this.SaveRecentChangesAsync();
             }
             catch (Exception)
             {
                 throw;
+            }
+        }
+
+        private async Task SaveRecentChangesAsync()
+        {
+            if (DateTime.Now - lastSaved > TimeSpan.FromSeconds(20))
+            {
+                await dbContext.SaveChangesAsync();
+                lastSaved = DateTime.Now;
             }
         }
     }

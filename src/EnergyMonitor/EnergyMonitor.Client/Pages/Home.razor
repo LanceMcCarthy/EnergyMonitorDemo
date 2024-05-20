@@ -8,11 +8,16 @@
 
 <div class="k-d-flex-col k-justify-content-center">
     <div style="text-align:center">
-        <TelerikSwitch OnLabel="On"
+        <TelerikSwitch OnLabel="Live"
                        OffLabel="Paused"
                        Value="@IsSubscribed"
                        ValueChanged="@((bool val) => OnIsSubscribedChanged(val))"
-                       Width="95px" />
+                       Width="80px" />
+        
+        <TelerikSwitch OnLabel="Saving"
+                       OffLabel="No Save"
+                       Value="@IsDatabaseEnabled"
+                       Width="90px" />
     </div>
     
     <TelerikTileLayout Columns="5"
@@ -24,22 +29,22 @@
         <TileLayoutItems>
             <TileLayoutItem HeaderText="Solar (PV)" RowSpan="1" ColSpan="1">
                 <Content>
-                    <GenericDisplay Value="@CurrentSolar" Color="#37B400" Subtitle="Solar (now)"/>
+                    <GenericDisplay Value="@CurrentSolar" Color="#37B400" Subtitle="Solar (now)" />
                 </Content>
             </TileLayoutItem>
             <TileLayoutItem HeaderText="Battery" RowSpan="1" ColSpan="1">
                 <Content>
-                    <GenericDisplay Value="@CurrentBatteryPowerTotal" Color="#F31700" Subtitle="Battery (now)"/>
+                    <GenericDisplay Value="@CurrentBatteryPowerTotal" Color="#F31700" Subtitle="Battery (now)" />
                 </Content>
             </TileLayoutItem>
             <TileLayoutItem HeaderText="Grid" RowSpan="1" ColSpan="1">
                 <Content>
-                    <GenericDisplay Value="@CurrentGridTotal" Color="#FFC000" Subtitle="Grid (now)"/>
+                    <GenericDisplay Value="@CurrentGridTotal" Color="#FFC000" Subtitle="Grid (now)" />
                 </Content>
             </TileLayoutItem>
             <TileLayoutItem HeaderText="Load" RowSpan="1" ColSpan="1">
                 <Content>
-                    <GenericDisplay Value="@CurrentLoad" Color="#FFC000" Subtitle="Load (now)"/>
+                    <GenericDisplay Value="@CurrentLoad" Color="#FFC000" Subtitle="Load (now)" />
                 </Content>
             </TileLayoutItem>
             <TileLayoutItem HeaderText="Battery" RowSpan="1" ColSpan="1">
@@ -49,10 +54,11 @@
             </TileLayoutItem>
             <TileLayoutItem Class="chart-tile" RowSpan="2" ColSpan="5">
                 <HeaderTemplate>
-                    <span style="font-size:16px;font-weight:400">
-                        Total Generation - Inverter Mode: @((MarkupString)CurrentInverterMode) - Charging Source Priority: @((MarkupString)ChargerSourcePriority)
-                    </span>
-
+                    <div>
+                        <span style="font-size:16px;font-weight:400">
+                            Total Generation |  Inverter Mode: @((MarkupString)CurrentInverterMode) | Charging Source Priority: @((MarkupString)ChargerSourcePriority)
+                        </span>
+                    </div>
                 </HeaderTemplate>
                 <Content>
                     <SystemPowerChart 
