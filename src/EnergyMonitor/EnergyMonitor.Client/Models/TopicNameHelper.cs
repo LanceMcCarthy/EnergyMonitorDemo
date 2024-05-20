@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 
 namespace EnergyMonitor.Client.Models;
 
@@ -43,7 +44,21 @@ public static class TopicNameHelper
             "solar_assistant/inverter_1/load_power/state" => TopicName.LoadPower_Inverter1,
             "solar_assistant/inverter_1/pv_power_2/state" => TopicName.PvPower2_Inverter1,
             "solar_assistant/inverter_1/charger_source_priority/state" => TopicName.ChargerSourcePriority_Inverter1,
-            _ => throw new ArgumentOutOfRangeException($"The topic name {topic} has no match. Please update the TopicName.cs enum and TopicNameHelper.GetTopicName method to support reading this new topic."),
+            "solar_assistant/inverter_1/battery_absorption_charge_voltage/state" => TopicName.BatteryAbsorptionChargeVoltage_Inverter1,
+            "solar_assistant/inverter_1/max_charge_current/state" => TopicName.MaxChargeCurrent_Inverter1,
+            "solar_assistant/inverter_1/battery_float_charge_voltage/state" => TopicName.BatteryFloatChargeVoltage_Inverter1,
+            "solar_assistant/inverter_1/max_grid_charge_current/state" => TopicName.MaxGridChargeCurrent_Inverter1,
+            "solar_assistant/inverter_1/output_source_priority/state" => TopicName.OutputSourcePriority_Inverter1,
+            "solar_assistant/inverter_1/to_grid_battery_voltage/state" => TopicName.ToGridBatteryVoltage_Inverter1,
+            "solar_assistant/inverter_1/shutdown_battery_voltage/state" => TopicName.ShutdownBatteryVoltage_Inverter1,
+            "solar_assistant/inverter_1/back_to_battery_voltage/state" => TopicName.BackToBatteryVoltage_Inverter1,
+            "solar_assistant/inverter_1/serial_number/state" => TopicName.SerialNumber_Inverter1,
+            "solar_assistant/inverter_1/power_saving/state" => TopicName.PowerSaving_Inverter1,
+            "solar_assistant/battery_1/current/state" => TopicName.Current_Battery1,
+            "solar_assistant/battery_1/state_of_charge/state" => TopicName.StateOfCharge_Battery1,
+            "solar_assistant/battery_1/voltage/state" => TopicName.Voltage_Battery1,
+            "solar_assistant/battery_1/power/state" => TopicName.Power_Battery1,
+            _ => throw new ArgumentOutOfRangeException($"The topic name {topic} has no match. Please update the TopicName.cs enum and TopicNameHelper.GetTopicName method to support reading this new topic.")
         };
     }
 
@@ -80,11 +95,27 @@ public static class TopicNameHelper
             TopicName.LoadPower_Inverter1 => "solar_assistant/inverter_1/load_power/state",
             TopicName.PvPower2_Inverter1 => "solar_assistant/inverter_1/pv_power_2/state",
             TopicName.ChargerSourcePriority_Inverter1 => "solar_assistant/inverter_1/charger_source_priority/state",
+            TopicName.BatteryAbsorptionChargeVoltage_Inverter1 => "solar_assistant/inverter_1/battery_absorption_charge_voltage/state",
+            TopicName.MaxChargeCurrent_Inverter1 => "solar_assistant/inverter_1/max_charge_current/state",
+            TopicName.BatteryFloatChargeVoltage_Inverter1 => "solar_assistant/inverter_1/battery_float_charge_voltage/state",
+            TopicName.MaxGridChargeCurrent_Inverter1 => "solar_assistant/inverter_1/max_grid_charge_current/state",
+            TopicName.OutputSourcePriority_Inverter1 => "solar_assistant/inverter_1/output_source_priority/state",
+            TopicName.ToGridBatteryVoltage_Inverter1 => "solar_assistant/inverter_1/to_grid_battery_voltage/state",
+            TopicName.ShutdownBatteryVoltage_Inverter1 => "solar_assistant/inverter_1/shutdown_battery_voltage/state",
+            TopicName.BackToBatteryVoltage_Inverter1 => "solar_assistant/inverter_1/back_to_battery_voltage/state",
+            TopicName.SerialNumber_Inverter1 => "solar_assistant/inverter_1/serial_number/state",
+            TopicName.PowerSaving_Inverter1 => "solar_assistant/inverter_1/power_saving/state",
+            TopicName.Current_Battery1 => "solar_assistant/battery_1/current/state",
+            TopicName.StateOfCharge_Battery1 => "solar_assistant/battery_1/state_of_charge/state",
+            TopicName.Voltage_Battery1 => "solar_assistant/battery_1/voltage/state",
+            TopicName.Power_Battery1 => "solar_assistant/battery_1/power/state",
             _ => throw new ArgumentOutOfRangeException($"The enum {topicName} has no known string match. Please update GetTopicFromTopicName method to support reading this new TopicName."),
         };
     }
 
     // example values
+    // 
+    // to_grid_battery_voltage
     // ******************************************************************* //
     // solar_assistant/total/battery_power/state: 65
     // solar_assistant/total/battery_state_of_charge/state: 100

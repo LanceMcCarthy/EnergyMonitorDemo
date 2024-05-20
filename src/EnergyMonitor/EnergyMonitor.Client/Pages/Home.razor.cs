@@ -25,6 +25,7 @@ public partial class Home
 
     private SystemPowerChart? SystemPowerChartRef { get; set; }
     private bool IsSubscribed { get; set; } = true;
+    private bool IsDatabaseEnabled { get; set; } = false;
     private double BatteryChargePercentage { get; set; } = 0;
     private string CurrentSolar { get; set; } = "0";
     private string CurrentLoad { get; set; } = "0";
@@ -64,40 +65,47 @@ public partial class Home
 
     private Task OnMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs e)
     {
-        // Processing a Message
+        // Processing an incoming MQTT Message
 
-        //----------------------------------------------------------------------//
-        // **  Step 1 - Get the topic and payload data out of the message
-        //----------------------------------------------------------------------//
+        try
+        {
+            //----------------------------------------------------------------------//
+            // **  Step 1 - Get the topic and payload data out of the message
+            //----------------------------------------------------------------------//
 
-        // Read the topic string. I return a strong type that we can easily work with it instead of crazy strings.
-        var messageTopic = TopicNameHelper.GetTopicName(e.ApplicationMessage.Topic);
+            // Read the topic string. I return a strong type that we can easily work with it instead of crazy strings.
+            var messageTopic = TopicNameHelper.GetTopicName(e.ApplicationMessage.Topic);
 
-        // Read the payload. Important! It is in the form of an ArraySegment<byte>, so we need to convert to byte[], then to ASCII.
-        var decodedPayload = Encoding.ASCII.GetString(e.ApplicationMessage.PayloadSegment.ToArray());
+            // Read the payload. Important! It is in the form of an ArraySegment<byte>, so we need to convert to byte[], then to ASCII.
+            var decodedPayload = Encoding.ASCII.GetString(e.ApplicationMessage.PayloadSegment.ToArray());
 
-        // DATABASE SAVE - Add to database
-        DataService.AddMeasurementAsync(new MqttDataItem { Topic = e.ApplicationMessage.Topic, Value = decodedPayload, Timestamp = DateTime.Now }).ConfigureAwait(false);
-
-        //----------------------------------------------------------------------//
-        // **  Step 2 - Now we can do something with that data.
-        //----------------------------------------------------------------------//
-
-        // Create item for database and Grid use
-        var item = new MqttDataItem { Topic = $"{messageTopic}", Value = decodedPayload, Timestamp = DateTime.Now };
-        
-        // Add item to the DataGrid items source and keep in-memory collection data to a manageable amount.
-        if (AllData.Count > 200) 
-            AllData.RemoveAt(0);
-
-        AllData.Add(item);
+            // DATABASE SAVE - Add to database
+            //DataService.AddMeasurementAsync(new MqttDataItem { Topic = e.ApplicationMessage.Topic, Value = decodedPayload, Timestamp = DateTime.Now }).ConfigureAwait(false);
 
 
-        // Update individual collections based on topic
-        ProcessDataItem(decodedPayload, messageTopic);
+            //----------------------------------------------------------------------//
+            // **  Step 2 - Now we can do something with that data.
+            //----------------------------------------------------------------------//
 
-        // Update UI
-        InvokeAsync(StateHasChanged);
+            // Create item for database and Grid use
+            var item = new MqttDataItem { Topic = $"{messageTopic}", Value = decodedPayload, Timestamp = DateTime.Now };
+
+            // Add item to the DataGrid items source and keep in-memory collection data to a manageable amount.
+            if (AllData.Count > 200)
+                AllData.RemoveAt(0);
+
+            AllData.Add(item);
+
+            // Update individual collections based on topic
+            ProcessDataItem(decodedPayload, messageTopic);
+
+            // Update UI
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception exception)
+        {
+            Console.WriteLine($"There was a problem processing {e.ApplicationMessage.Topic}: {exception.Message}");
+        }
 
         return Task.CompletedTask;
     }
@@ -168,6 +176,21 @@ public partial class Home
             case TopicName.AcOutputFrequency_Inverter1:
             case TopicName.AcOutputVoltage_Inverter1:
             case TopicName.PvPower2_Inverter1:
+            case TopicName.BatteryAbsorptionChargeVoltage_Inverter1:
+            case TopicName.MaxChargeCurrent_Inverter1:
+            case TopicName.BatteryFloatChargeVoltage_Inverter1:
+            case TopicName.MaxGridChargeCurrent_Inverter1:
+            case TopicName.OutputSourcePriority_Inverter1:
+            case TopicName.ToGridBatteryVoltage_Inverter1:
+            case TopicName.ShutdownBatteryVoltage_Inverter1:
+            case TopicName.BackToBatteryVoltage_Inverter1:
+            case TopicName.SerialNumber_Inverter1:
+            case TopicName.PowerSaving_Inverter1:
+            case TopicName.Current_Battery1:
+            case TopicName.StateOfCharge_Battery1:
+            case TopicName.Voltage_Battery1:
+            case TopicName.Power_Battery1:
+            case TopicName.Unknown:
             default:
                 break;
         }
