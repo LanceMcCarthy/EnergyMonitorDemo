@@ -1,8 +1,8 @@
 using EnergyMonitor.Client.Pages;
 using EnergyMonitor.Client.Services;
 using EnergyMonitor.Components;
-using Microsoft.EntityFrameworkCore;
 using EnergyMonitor.Client.Models;
+using kDg.FileBaseContext.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,7 +19,8 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddTelerikBlazor();
 
-builder.Services.AddDbContext<MeasurementsDbContext>(o => { o.UseSqlite("Data Source = Measurements.db", b => b.MigrationsAssembly("EnergyMonitor")); });
+//builder.Services.AddDbContext<MeasurementsDbContext>(o => { o.UseSqlite("Data Source = Measurements.db", b => b.MigrationsAssembly("EnergyMonitor")); });
+builder.Services.AddDbContext<MeasurementsDbContext>(options => options.UseFileBaseContextDatabase("measurements"));
 
 builder.Services.AddScoped<MqttUiService>();
 builder.Services.AddScoped<MessagesDataService>();

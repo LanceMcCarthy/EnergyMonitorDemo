@@ -8,11 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+        <PackageReference Include="FileBaseContext" Version="4.0.1" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.5" />
         <PackageReference Include="Telerik.UI.for.Blazor" Version="6.0.0" />
-        <PackageReference Include="MQTTnet" Version="4.3.4.1084" />
-        <PackageReference Include="MQTTnet.Extensions.ManagedClient" Version="4.3.4.1084" />
-        <PackageReference Include="MQTTnet.Extensions.Rpc" Version="4.3.4.1084" />
+        <PackageReference Include="MQTTnet" Version="4.3.5.1141" />
+        <PackageReference Include="MQTTnet.Extensions.ManagedClient" Version="4.3.5.1141" />
+        <PackageReference Include="MQTTnet.Extensions.Rpc" Version="4.3.5.1141" />
         <PackageReference Include="System.Net.Http.Json" Version="8.0.0" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.5" />
   </ItemGroup>
