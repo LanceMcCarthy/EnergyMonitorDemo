@@ -25,7 +25,7 @@ public partial class Home
 
     private SystemPowerChart? SystemPowerChartRef { get; set; }
     private bool IsSubscribed { get; set; } = true;
-    private bool IsDatabaseEnabled { get; set; } = false;
+    private bool IsDatabaseEnabled { get; set; } = true;
     private double BatteryChargePercentage { get; set; } = 0;
     private string CurrentSolar { get; set; } = "0";
     private string CurrentLoad { get; set; } = "0";
@@ -39,11 +39,11 @@ public partial class Home
         // Load up database data
         var items = await DataService.GetMeasurementsAsync();
 
-        AllData.AddRange(items);
-
         foreach (var item in items)
         {
-            ProcessDataItem(item.Value, TopicNameHelper.GetTopicName(item.Topic));
+            await ProcessDataItem(item.Value, TopicNameHelper.GetTopicName(item.Topic));
+
+            AllData.Add(item);
         }
 
         await MqttService.SetupMqtt(OnMessageReceivedAsync);
@@ -63,7 +63,7 @@ public partial class Home
         return IsSubscribed = value;
     }
 
-    private Task OnMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs e)
+    private async Task OnMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs e)
     {
         // Processing an incoming MQTT Message
 
@@ -80,8 +80,11 @@ public partial class Home
             var decodedPayload = Encoding.ASCII.GetString(e.ApplicationMessage.PayloadSegment.ToArray());
 
             // DATABASE SAVE - Add to database
-            //DataService.AddMeasurementAsync(new MqttDataItem { Topic = e.ApplicationMessage.Topic, Value = decodedPayload, Timestamp = DateTime.Now }).ConfigureAwait(false);
-
+            
+            if(IsDatabaseEnabled)
+            {
+                await DataService.AddMeasurementAsync(new MqttDataItem { Topic = e.ApplicationMessage.Topic, Value = decodedPayload, Timestamp = DateTime.Now });
+            }
 
             //----------------------------------------------------------------------//
             // **  Step 2 - Now we can do something with that data.
@@ -91,7 +94,7 @@ public partial class Home
             var item = new MqttDataItem { Topic = $"{messageTopic}", Value = decodedPayload, Timestamp = DateTime.Now };
 
             // Add item to the DataGrid items source and keep in-memory collection data to a manageable amount.
-            if (AllData.Count > 200)
+            if (AllData.Count > 100)
                 AllData.RemoveAt(0);
 
             AllData.Add(item);
@@ -107,10 +110,10 @@ public partial class Home
             Console.WriteLine($"There was a problem processing {e.ApplicationMessage.Topic}: {exception.Message}");
         }
 
-        return Task.CompletedTask;
+        //return Task.CompletedTask;
     }
 
-    private void ProcessDataItem(string decodedPayload, TopicName messageTopic)
+    private Task ProcessDataItem(string decodedPayload, TopicName messageTopic)
     {
         switch (messageTopic)
         {
@@ -194,6 +197,8 @@ public partial class Home
             default:
                 break;
         }
+
+        return Task.CompletedTask;
     }
 
     private void ItemResize()

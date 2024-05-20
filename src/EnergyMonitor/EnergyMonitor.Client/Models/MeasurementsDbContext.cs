@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using kDg.FileBaseContext.Extensions;
+using Microsoft.EntityFrameworkCore;
 
 namespace EnergyMonitor.Client.Models
 {
@@ -6,9 +7,17 @@ namespace EnergyMonitor.Client.Models
     {
         public DbSet<MqttDataItem> Measurements { get; set; } = null!;
 
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            // Making sure we are writing to a user-owned directory in Linux
+            // Environment.ExpandEnvironmentVariables("%HOME%");
+            optionsBuilder.UseFileBaseContextDatabase(location: @"~\userDb");
+
+            base.OnConfiguring(optionsBuilder);
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Maybe consider adding some seed data to populate charts on first launch? append .HasData(GenerateSeedData()) here to do that
             modelBuilder.Entity<MqttDataItem>()
                 .Property(e => e.Id)
                 .ValueGeneratedOnAdd();
@@ -30,7 +39,7 @@ namespace EnergyMonitor.Client.Models
                 new() { Id  = Guid.NewGuid(), Topic = "solar_assistant/total/battery_state_of_charge/state", Value = "100", Timestamp = DateTime.Now.AddSeconds(-1) },
                 new() { Id  = Guid.NewGuid(), Topic = "solar_assistant/inverter_1/charger_source_priority/state", Value = "Solar/Battery/Grid", Timestamp = DateTime.Now.AddSeconds(-1) },
                 new() { Id  = Guid.NewGuid(), Topic = "solar_assistant/inverter_1/device_mode/state", Value = "Solar", Timestamp = DateTime.Now.AddSeconds(-1) },
-
+                
                 new() { Id  = Guid.NewGuid(), Topic = "solar_assistant/inverter_1/pv_power/state", Value = "1600", Timestamp = DateTime.Now.AddSeconds(-2) },
                 new() { Id  = Guid.NewGuid(), Topic = "solar_assistant/inverter_1/grid_power/state", Value = "0", Timestamp = DateTime.Now.AddSeconds(-2) },
                 new() { Id  = Guid.NewGuid(), Topic = "solar_assistant/inverter_1/load_power/state", Value = "875", Timestamp = DateTime.Now.AddSeconds(-2) },
