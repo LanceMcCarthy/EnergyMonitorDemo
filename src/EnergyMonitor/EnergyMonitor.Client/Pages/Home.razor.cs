@@ -5,7 +5,6 @@ using EnergyMonitor.Client.Models;
 using EnergyMonitor.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MQTTnet.Client;
-using Telerik.DataSource.Extensions;
 
 namespace EnergyMonitor.Client.Pages;
 
@@ -24,7 +23,7 @@ public partial class Home
     private ObservableCollection<MqttDataItem> AllData { get; } = new();
 
     private SystemPowerChart? SystemPowerChartRef { get; set; }
-    private bool IsSubscribed { get; set; } = true;
+    private bool IsSubscribed { get; set; } = false;
     private bool IsDatabaseEnabled { get; set; } = true;
     private double BatteryChargePercentage { get; set; } = 0;
     private string CurrentSolar { get; set; } = "0";
@@ -69,9 +68,9 @@ public partial class Home
 
         try
         {
-            //----------------------------------------------------------------------//
-            // **  Step 1 - Get the topic and payload data out of the message
-            //----------------------------------------------------------------------//
+            // *************************************************************************** //
+            // ******** Step 1 - Get the topic and payload data out of the message ******* //
+            // *************************************************************************** //
 
             // Read the topic string. I return a strong type that we can easily work with it instead of crazy strings.
             var messageTopic = TopicNameHelper.GetTopicName(e.ApplicationMessage.Topic);
@@ -86,31 +85,34 @@ public partial class Home
                 await DataService.AddMeasurementAsync(new MqttDataItem { Topic = e.ApplicationMessage.Topic, Value = decodedPayload, Timestamp = DateTime.Now });
             }
 
-            //----------------------------------------------------------------------//
-            // **  Step 2 - Now we can do something with that data.
-            //----------------------------------------------------------------------//
+
+            // *************************************************************************** //
+            // ************* Step 2 - Now we can do something with that data ************* //
+            // *************************************************************************** //
 
             // Create item for database and Grid use
             var item = new MqttDataItem { Topic = $"{messageTopic}", Value = decodedPayload, Timestamp = DateTime.Now };
 
             // Add item to the DataGrid items source and keep in-memory collection data to a manageable amount.
-            if (AllData.Count > 100)
-                AllData.RemoveAt(0);
-
-            AllData.Add(item);
-
+            await Task.Run(() =>
+            {
+                if (AllData.Count > 100) AllData.RemoveAt(0);
+            })
+            .ContinueWith(t =>
+            {
+                AllData.Add(item);
+            });
+            
             // Update individual collections based on topic
-            ProcessDataItem(decodedPayload, messageTopic);
+            await ProcessDataItem(decodedPayload, messageTopic);
 
             // Update UI
-            InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
             Console.WriteLine($"There was a problem processing {e.ApplicationMessage.Topic}: {exception.Message}");
         }
-
-        //return Task.CompletedTask;
     }
 
     private Task ProcessDataItem(string decodedPayload, TopicName messageTopic)

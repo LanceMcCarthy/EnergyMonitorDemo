@@ -1,21 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <Nullable>enable</Nullable>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <UserSecretsId>5f708750-18e3-4deb-aeab-5a8f7ccc7bf7</UserSecretsId>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>5f708750-18e3-4deb-aeab-5a8f7ccc7bf7</UserSecretsId>
+    <ContainerRepository>lancemccarthy/energymonitor</ContainerRepository>
+    <ContainerRegistry>ghcr.io</ContainerRegistry>
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0</ContainerBaseImage>
+    <ContainerImageTag>latest</ContainerImageTag>
   </PropertyGroup>
 
   <ItemGroup>
-        <ProjectReference Include="..\EnergyMonitor.Client\EnergyMonitor.Client.csproj" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.5" />
-        <PackageReference Include="Telerik.UI.for.Blazor" Version="6.0.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.5" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.5">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
+    <ProjectReference Include="..\EnergyMonitor.Client\EnergyMonitor.Client.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.5" />
+    <PackageReference Include="Telerik.UI.for.Blazor" Version="6.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>

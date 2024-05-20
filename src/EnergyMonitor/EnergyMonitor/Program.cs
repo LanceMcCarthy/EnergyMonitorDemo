@@ -2,7 +2,7 @@ using EnergyMonitor.Client.Pages;
 using EnergyMonitor.Client.Services;
 using EnergyMonitor.Components;
 using EnergyMonitor.Client.Models;
-using kDg.FileBaseContext.Extensions;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,13 +19,24 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddTelerikBlazor();
 
-//builder.Services.AddDbContext<MeasurementsDbContext>(o => { o.UseSqlite("Data Source = Measurements.db", b => b.MigrationsAssembly("EnergyMonitor")); });
-builder.Services.AddDbContext<MeasurementsDbContext>(options => options.UseFileBaseContextDatabase("measurements"));
+builder.Services.AddDbContext<MeasurementsDbContext>(o => { o.UseSqlite("Data Source = Measurements.db", b => b.MigrationsAssembly("EnergyMonitor")); });
 
 builder.Services.AddScoped<MqttUiService>();
 builder.Services.AddScoped<MessagesDataService>();
 
 var app = builder.Build();
+
+using (var serviceScope = app.Services.CreateScope())
+{
+    var dbContext = serviceScope.ServiceProvider.GetRequiredService<MeasurementsDbContext>();
+
+    await dbContext.Database.EnsureCreatedAsync();
+
+    if (dbContext.Database.GetPendingMigrations().Any())
+    {
+        await dbContext.Database.MigrateAsync();
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
