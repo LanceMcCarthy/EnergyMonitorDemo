@@ -1,5 +1,4 @@
-﻿using kDg.FileBaseContext.Extensions;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace EnergyMonitor.Client.Models
 {
@@ -9,10 +8,7 @@ namespace EnergyMonitor.Client.Models
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            // Making sure we are writing to a user-owned directory in Linux
-            // Environment.ExpandEnvironmentVariables("%HOME%");
-            optionsBuilder.UseFileBaseContextDatabase(location: @"~\userDb");
-
+            
             base.OnConfiguring(optionsBuilder);
         }
 
