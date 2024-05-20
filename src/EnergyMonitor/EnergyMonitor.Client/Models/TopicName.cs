@@ -35,5 +35,20 @@ public enum TopicName
     AcOutputVoltage_Inverter1,
     LoadPower_Inverter1,
     PvPower2_Inverter1,
-    ChargerSourcePriority_Inverter1
+    ChargerSourcePriority_Inverter1,
+    BatteryAbsorptionChargeVoltage_Inverter1,
+    MaxChargeCurrent_Inverter1,
+    BatteryFloatChargeVoltage_Inverter1,
+    MaxGridChargeCurrent_Inverter1,
+    OutputSourcePriority_Inverter1,
+    ToGridBatteryVoltage_Inverter1,
+    ShutdownBatteryVoltage_Inverter1,
+    BackToBatteryVoltage_Inverter1,
+    SerialNumber_Inverter1,
+    PowerSaving_Inverter1,
+    Current_Battery1,
+    StateOfCharge_Battery1,
+    Voltage_Battery1,
+    Power_Battery1,
+    Unknown
 }
