@@ -65,16 +65,40 @@
                         BatteryPowerData="@BatteryPowerData"
                         GridPowerData="@GridPowerData"
                         LoadPowerData="@LoadPowerData"
-                        SolarPowerData="@SolarPowerData"
-                    ></SystemPowerChart>
+                        SolarPowerData="@SolarPowerData"/>
                 </Content>
             </TileLayoutItem>
-            <TileLayoutItem RowSpan="3" ColSpan="5">
+           <TileLayoutItem RowSpan="3" ColSpan="5">
                 <HeaderTemplate>
-                    <span style="font-size:16px;font-weight:400">Message History</span>
+                    <span style="font-size:16px;font-weight:400">Battery Charge</span>
                 </HeaderTemplate>
                 <Content>
-                    <AllDataGrid Data="@AllData"></AllDataGrid>
+                    <TelerikChart @ref="@BatteryPercentageChartRef" 
+                                  Width="100%"
+                                  Transitions="false" 
+                                  RenderAs="RenderingMode.Canvas">
+                        <ChartTooltip Visible="true" />
+                        <ChartLegend Position="ChartLegendPosition.Bottom" />
+                        <ChartSeriesItems>
+                            <ChartSeries Name="BatteryChargeSeries"
+                                         Data="@BatteryChargeData"
+                                         Field="@nameof(ChartMqttDataItem.CurrentValue)"
+                                         CategoryField="@nameof(ChartMqttDataItem.Timestamp)"
+                                         Type="ChartSeriesType.Area"
+                                         Axis="PowerAxis" />
+                        </ChartSeriesItems>
+                        <ChartCategoryAxes>
+                            <ChartCategoryAxis BaseUnit="ChartCategoryAxisBaseUnit.Minutes" Type="ChartCategoryAxisType.Date">
+                                <ChartCategoryAxisLabels Format="{0:mm ssss}" />
+                            </ChartCategoryAxis>
+                        </ChartCategoryAxes>
+                        <ChartValueAxes>
+                            <ChartValueAxis Name="BatteryChargeSeries">
+                                <ChartValueAxisTitle Text="Charge" />
+                                <ChartValueAxisLabels Format="{0:P0}" />
+                            </ChartValueAxis>
+                        </ChartValueAxes>
+                    </TelerikChart>
                 </Content>
             </TileLayoutItem>
         </TileLayoutItems>
