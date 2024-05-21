@@ -2,29 +2,33 @@
 using System.Text;
 using EnergyMonitor.Client.Components.Charts.SystemPower;
 using EnergyMonitor.Client.Models;
+using EnergyMonitor.Client.Models.Collections;
 using EnergyMonitor.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MQTTnet.Client;
+using Telerik.Blazor.Components;
 
 namespace EnergyMonitor.Client.Pages;
 
 public partial class Home
 {
     [Inject]
-    public MqttUiService MqttService { get; set; } = default!;//injected
+    public MqttUiService MqttService { get; set; } = default!;
 
     [Inject]
-    public MessagesDataService DataService { get; set; } = default!;//injected
+    public MessagesDataService DataService { get; set; } = default!;
 
-    private ObservableCollection<ChartMqttDataItem> SolarPowerData { get; } = new();
-    private ObservableCollection<ChartMqttDataItem> LoadPowerData { get; } = new();
-    private ObservableCollection<ChartMqttDataItem> BatteryPowerData { get; } = new();
-    private ObservableCollection<ChartMqttDataItem> GridPowerData { get; } = new();
-    private ObservableCollection<MqttDataItem> AllData { get; } = new();
+    //private TrimmableCollection<MqttDataItem> AllData { get; } = new(){ Maximum = 120 };
+    private TrimmableCollection<ChartMqttDataItem> SolarPowerData { get; } = new(){ Maximum = 120 };
+    private TrimmableCollection<ChartMqttDataItem> LoadPowerData { get; } = new(){ Maximum = 120 };
+    private TrimmableCollection<ChartMqttDataItem> BatteryPowerData { get; } = new(){ Maximum = 120 };
+    private TrimmableCollection<ChartMqttDataItem> GridPowerData { get; } = new(){ Maximum = 120 };
+    private TrimmableCollection<ChartMqttDataItem> BatteryChargeData { get; } = new(){ Maximum = 120 };
 
+    private TelerikChart BatteryPercentageChartRef { get; set; }
     private SystemPowerChart? SystemPowerChartRef { get; set; }
-    private bool IsSubscribed { get; set; } = false;
-    private bool IsDatabaseEnabled { get; set; } = true;
+    private bool IsSubscribed { get; set; } = true;
+    private bool IsDatabaseEnabled { get; set; } = false;
     private double BatteryChargePercentage { get; set; } = 0;
     private string CurrentSolar { get; set; } = "0";
     private string CurrentLoad { get; set; } = "0";
@@ -35,14 +39,13 @@ public partial class Home
 
     protected override async Task OnInitializedAsync()
     {
-        // Load up database data
-        var items = await DataService.GetMeasurementsAsync();
+        // Load up last 2 hours of data from the last 12 hours
+        var items = await DataService.GetMeasurementsAsync(DateTime.Now.AddHours(-12), DateTime.Now);
 
-        foreach (var item in items)
+        // We only use the most recent 60 items from the database on initial load. For a longer timeline, use the /history page
+        foreach (var item in items.Take(60))
         {
             await ProcessDataItem(item.Value, TopicNameHelper.GetTopicName(item.Topic));
-
-            AllData.Add(item);
         }
 
         await MqttService.SetupMqtt(OnMessageReceivedAsync);
@@ -78,31 +81,22 @@ public partial class Home
             // Read the payload. Important! It is in the form of an ArraySegment<byte>, so we need to convert to byte[], then to ASCII.
             var decodedPayload = Encoding.ASCII.GetString(e.ApplicationMessage.PayloadSegment.ToArray());
 
-            // DATABASE SAVE - Add to database
+
+            // *************************************************************************** //
+            // ************ Step 2 - Store the item in the long term storage ************* //
+            // *************************************************************************** //
             
             if(IsDatabaseEnabled)
             {
+                // Save item to database
                 await DataService.AddMeasurementAsync(new MqttDataItem { Topic = e.ApplicationMessage.Topic, Value = decodedPayload, Timestamp = DateTime.Now });
             }
 
 
             // *************************************************************************** //
-            // ************* Step 2 - Now we can do something with that data ************* //
+            // ************* Step 3 - Now we can do something with that data ************* //
             // *************************************************************************** //
 
-            // Create item for database and Grid use
-            var item = new MqttDataItem { Topic = $"{messageTopic}", Value = decodedPayload, Timestamp = DateTime.Now };
-
-            // Add item to the DataGrid items source and keep in-memory collection data to a manageable amount.
-            await Task.Run(() =>
-            {
-                if (AllData.Count > 100) AllData.RemoveAt(0);
-            })
-            .ContinueWith(t =>
-            {
-                AllData.Add(item);
-            });
-            
             // Update individual collections based on topic
             await ProcessDataItem(decodedPayload, messageTopic);
 
@@ -117,48 +111,47 @@ public partial class Home
 
     private Task ProcessDataItem(string decodedPayload, TopicName messageTopic)
     {
+        var item = new ChartMqttDataItem { Category = messageTopic, Timestamp = DateTime.Now };
+
         switch (messageTopic)
         {
             case TopicName.DeviceMode_Inverter1:
                 CurrentInverterMode = decodedPayload;
                 break;
-            
+
             case TopicName.ChargerSourcePriority_Inverter1:
                 ChargerSourcePriority = decodedPayload;
                 break;
 
             case TopicName.LoadPower_Inverter1:
-                var loadCurrent = Convert.ToDouble(decodedPayload);
-                CurrentLoad = $"{loadCurrent}";
-                LoadPowerData.Add(new ChartMqttDataItem { Category = messageTopic, CurrentValue = loadCurrent, Timestamp = DateTime.Now });
-                if (LoadPowerData.Count > 100) LoadPowerData.RemoveAt(0);
+                item.CurrentValue = Convert.ToDouble(decodedPayload);
+                CurrentLoad = $"{item.CurrentValue}";
+                LoadPowerData.Add(item);
                 break;
 
             case TopicName.PvPower_Inverter1:
-                var pvCurrent = Convert.ToDouble(decodedPayload);
-                CurrentSolar = $"{pvCurrent}";
-                SolarPowerData.Add(new ChartMqttDataItem { Category = messageTopic, CurrentValue = pvCurrent, Timestamp = DateTime.Now });
-                if (SolarPowerData.Count > 100) SolarPowerData.RemoveAt(0);
+                item.CurrentValue = Convert.ToDouble(decodedPayload);
+                CurrentSolar = $"{item.CurrentValue}";
+                SolarPowerData.Add(item);
                 break;
 
             case TopicName.BatteryPower_Total:
-                var batteryPower = Convert.ToDouble(decodedPayload);
-                CurrentBatteryPowerTotal = $"{batteryPower}";
-                BatteryPowerData.Add(new ChartMqttDataItem { Category = messageTopic, CurrentValue = batteryPower, Timestamp = DateTime.Now });
-                if (BatteryPowerData.Count > 100) SolarPowerData.RemoveAt(0);
+                item.CurrentValue = Convert.ToDouble(decodedPayload);
+                CurrentBatteryPowerTotal = $"{item.CurrentValue}";
+                BatteryPowerData.Add(item);
                 break;
 
             case TopicName.GridPower_Inverter1:
-                var gridPower = Convert.ToDouble(decodedPayload);
-                CurrentGridTotal = $"{gridPower}";
-                GridPowerData.Add(new ChartMqttDataItem { Category = messageTopic, CurrentValue = gridPower, Timestamp = DateTime.Now });
-                if (GridPowerData.Count > 100) GridPowerData.RemoveAt(0);
+                item.CurrentValue = Convert.ToDouble(decodedPayload);
+                CurrentGridTotal = $"{item.CurrentValue}";
+                GridPowerData.Add(item);
                 break;
 
             case TopicName.BatteryStateOfCharge_Total:
-                var batteryCharge = Convert.ToDouble(decodedPayload);
-                BatteryChargePercentage = batteryCharge;
+                BatteryChargePercentage = item.CurrentValue = Convert.ToDouble(decodedPayload);
+                BatteryChargeData.Add(item);
                 break;
+
             case TopicName.PvEnergy_Total:
             case TopicName.LoadEnergy_Total:
             case TopicName.BatteryEnergyIn_Total:
@@ -192,9 +185,9 @@ public partial class Home
             case TopicName.SerialNumber_Inverter1:
             case TopicName.PowerSaving_Inverter1:
             case TopicName.Current_Battery1:
-            case TopicName.StateOfCharge_Battery1:
             case TopicName.Voltage_Battery1:
             case TopicName.Power_Battery1:
+            case TopicName.StateOfCharge_Battery1:
             case TopicName.Unknown:
             default:
                 break;
@@ -207,5 +200,6 @@ public partial class Home
     {
         StateHasChanged();
         SystemPowerChartRef?.Refresh();
+        BatteryPercentageChartRef?.Refresh();
     }
 }

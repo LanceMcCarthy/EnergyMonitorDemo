@@ -1,0 +1,90 @@
+﻿@page "/history"
+@using CommonHelpers.Collections
+@using EnergyMonitor.Client.Models
+@using EnergyMonitor.Client.Services
+
+<h3>Measurement History</h3>
+
+<div class="flex-container">
+    <div class="flex-child">
+        <p>Start Date & Time</p>
+        <TelerikDateTimePicker @bind-Value="@StartDate"
+                               Format="MM/dd/yyyy hh:ss"
+                               ShowWeekNumbers="true"
+                               Id="selected-start"
+                               OnChange="@OnStartDateChange">
+        </TelerikDateTimePicker>
+    </div>
+    <div class="flex-child">
+        <p>End Date & Time</p>
+        <TelerikDateTimePicker @bind-Value="@EndDate"
+                               Format="MM/dd/yyyy hh:ss"
+                               ShowWeekNumbers="true"
+                               Id="selected-end"
+                               OnChange="@OnEndDateChange">
+        </TelerikDateTimePicker>
+    </div>
+</div>
+
+<TelerikGrid Data="@Data" Height="600px"
+             Groupable="true"
+             Pageable="true"
+             Sortable="true"
+             SortMode="@SortMode.Single"
+             FilterMode="@GridFilterMode.FilterRow"
+             FilterRowDebounceDelay="250"
+             PageSize="25">
+    <GridColumns>
+        <GridColumn Field="@nameof(MqttDataItem.Timestamp)" Width="250px" />
+        <GridColumn Field="@nameof(MqttDataItem.Topic)" />
+        <GridColumn Field="@nameof(MqttDataItem.Value)" />
+    </GridColumns>
+</TelerikGrid>
+
+<style>
+    .flex-container {
+        display: flex;
+    }
+    .flex-child {
+        margin-bottom: 10px;
+        margin-right: 10px;
+    }
+</style>
+
+@code {
+    [Inject]
+    public MessagesDataService DataService { get; set; } = default!;
+
+    private ObservableRangeCollection<MqttDataItem> Data { get; } = new(); 
+    public DateTime StartDate { get; set; } = DateTime.Now.AddDays(-1);
+    public DateTime EndDate { get; set; } = DateTime.Now;
+    public int DebounceDelay { get; set; } = 333;
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            UpdateGridAsync().ConfigureAwait(false);
+
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+    private async void OnStartDateChange(object obj)
+    {
+        await UpdateGridAsync();
+    }
+
+    private async void OnEndDateChange(object obj)
+    {
+        await UpdateGridAsync();
+    }
+
+    private async Task UpdateGridAsync()
+    {
+        var result = await DataService.GetMeasurementsAsync(StartDate, EndDate);
+
+        Data.Clear();
+
+        Data.AddRange(result);
+    }
+
+}

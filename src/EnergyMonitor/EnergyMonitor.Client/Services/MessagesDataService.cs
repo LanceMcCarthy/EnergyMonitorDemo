@@ -5,9 +5,14 @@ namespace EnergyMonitor.Client.Services
 {
     public class MessagesDataService(MeasurementsDbContext dbContext)
     {
-        public async Task<List<MqttDataItem>> GetMeasurementsAsync()
+        public async Task<List<MqttDataItem>> GetAllMeasurementsAsync()
         {
             return await dbContext.Measurements.ToListAsync();
+        }
+
+        public async Task<List<MqttDataItem>> GetMeasurementsAsync(DateTime start, DateTime end)
+        {
+            return await dbContext.Measurements.Where(i => i.Timestamp > start && i.Timestamp < end).ToListAsync();
         }
 
         public async Task<MqttDataItem> AddMeasurementAsync(MqttDataItem dataItem)
