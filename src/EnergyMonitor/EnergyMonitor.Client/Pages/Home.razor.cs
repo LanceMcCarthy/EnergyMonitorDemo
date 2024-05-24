@@ -1,8 +1,6 @@
-﻿using System.Collections.ObjectModel;
-using System.Text;
-using EnergyMonitor.Client.Components.Charts.SystemPower;
+﻿using System.Text;
+using CommonHelpers.Collections;
 using EnergyMonitor.Client.Models;
-using EnergyMonitor.Client.Models.Collections;
 using EnergyMonitor.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MQTTnet.Client;
@@ -19,11 +17,11 @@ public partial class Home
     public MessagesDataService DataService { get; set; } = default!;
 
     //private TrimmableCollection<MqttDataItem>? AllData { get; } = new(){ Maximum = 120 };
-    private TrimmableCollection<ChartMqttDataItem> SolarPowerData { get; } = new(){ Maximum = 120 };
-    private TrimmableCollection<ChartMqttDataItem> LoadPowerData { get; } = new(){ Maximum = 120 };
-    private TrimmableCollection<ChartMqttDataItem> BatteryPowerData { get; } = new(){ Maximum = 120 };
-    private TrimmableCollection<ChartMqttDataItem> GridPowerData { get; } = new(){ Maximum = 120 };
-    private TrimmableCollection<ChartMqttDataItem> BatteryChargeData { get; } = new(){ Maximum = 120 };
+    private ObservableRangeCollection<ChartMqttDataItem> SolarPowerData { get; } = new(){ MaximumCount = 120 };
+    private ObservableRangeCollection<ChartMqttDataItem> LoadPowerData { get; } = new(){ MaximumCount = 120 };
+    private ObservableRangeCollection<ChartMqttDataItem> BatteryPowerData { get; } = new(){ MaximumCount = 120 };
+    private ObservableRangeCollection<ChartMqttDataItem> GridPowerData { get; } = new(){ MaximumCount = 120 };
+    private ObservableRangeCollection<ChartMqttDataItem> BatteryChargeData { get; } = new(){ MaximumCount = 120 };
 
     private TelerikChart? BatteryPercentageChartRef { get; set; }
     private TelerikChart? SystemPowerChartRef { get; set; }
