@@ -19,11 +19,14 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddTelerikBlazor();
 
-#if RELEASE
-builder.Services.AddDbContext<MeasurementsDbContext>(o => { o.UseSqlite("Data Source=/home/app/Measurements.db", b => b.MigrationsAssembly("EnergyMonitor")); });
-#elif DEBUG
-builder.Services.AddDbContext<MeasurementsDbContext>(o => { o.UseSqlite("Data Source=Measurements.db", b => b.MigrationsAssembly("EnergyMonitor")); });
-#endif
+if(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
+{
+    builder.Services.AddDbContext<MeasurementsDbContext>(o => { o.UseSqlite("Data Source=/home/app/Measurements.db", b => b.MigrationsAssembly("EnergyMonitor")); });
+}
+else
+{
+    builder.Services.AddDbContext<MeasurementsDbContext>(o => { o.UseSqlite("Data Source=Measurements.db", b => b.MigrationsAssembly("EnergyMonitor")); });
+}
 
 builder.Services.AddScoped<MqttUiService>();
 builder.Services.AddScoped<MessagesDataService>();
