@@ -18,15 +18,15 @@ public partial class Home
     [Inject]
     public MessagesDataService DataService { get; set; } = default!;
 
-    //private TrimmableCollection<MqttDataItem> AllData { get; } = new(){ Maximum = 120 };
+    //private TrimmableCollection<MqttDataItem>? AllData { get; } = new(){ Maximum = 120 };
     private TrimmableCollection<ChartMqttDataItem> SolarPowerData { get; } = new(){ Maximum = 120 };
     private TrimmableCollection<ChartMqttDataItem> LoadPowerData { get; } = new(){ Maximum = 120 };
     private TrimmableCollection<ChartMqttDataItem> BatteryPowerData { get; } = new(){ Maximum = 120 };
     private TrimmableCollection<ChartMqttDataItem> GridPowerData { get; } = new(){ Maximum = 120 };
     private TrimmableCollection<ChartMqttDataItem> BatteryChargeData { get; } = new(){ Maximum = 120 };
 
-    private TelerikChart BatteryPercentageChartRef { get; set; }
-    private SystemPowerChart? SystemPowerChartRef { get; set; }
+    private TelerikChart? BatteryPercentageChartRef { get; set; }
+    private TelerikChart? SystemPowerChartRef { get; set; }
     private bool IsSubscribed { get; set; } = true;
     private bool IsDatabaseEnabled { get; set; } = false;
     private double BatteryChargePercentage { get; set; } = 0;
@@ -81,6 +81,8 @@ public partial class Home
             // Read the payload. Important! It is in the form of an ArraySegment<byte>, so we need to convert to byte[], then to ASCII.
             var decodedPayload = Encoding.ASCII.GetString(e.ApplicationMessage.PayloadSegment.ToArray());
 
+            var item = new MqttDataItem { Topic = e.ApplicationMessage.Topic, Value = decodedPayload, Timestamp = DateTime.Now };
+
 
             // *************************************************************************** //
             // ************ Step 2 - Store the item in the long term storage ************* //
@@ -89,9 +91,8 @@ public partial class Home
             if(IsDatabaseEnabled)
             {
                 // Save item to database
-                await DataService.AddMeasurementAsync(new MqttDataItem { Topic = e.ApplicationMessage.Topic, Value = decodedPayload, Timestamp = DateTime.Now });
+                await DataService.AddMeasurementAsync(item);
             }
-
 
             // *************************************************************************** //
             // ************* Step 3 - Now we can do something with that data ************* //

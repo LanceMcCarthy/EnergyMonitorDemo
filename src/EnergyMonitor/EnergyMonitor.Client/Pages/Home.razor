@@ -61,11 +61,50 @@
                     </div>
                 </HeaderTemplate>
                 <Content>
-                    <SystemPowerChart 
-                        BatteryPowerData="@BatteryPowerData"
-                        GridPowerData="@GridPowerData"
-                        LoadPowerData="@LoadPowerData"
-                        SolarPowerData="@SolarPowerData"/>
+                    <TelerikChart @ref="@SystemPowerChartRef" Width="100%" Transitions="false" RenderAs="RenderingMode.Canvas">
+                        <ChartTooltip Visible="true" />
+                        <ChartLegend Position="ChartLegendPosition.Bottom" />
+                        <ChartSeriesItems>
+                            <ChartSeries Name="Solar"
+                                         Data="@SolarPowerData"
+                                         Field="@nameof(ChartMqttDataItem.CurrentValue)"
+                                         CategoryField="@nameof(ChartMqttDataItem.Timestamp)"
+                                         Type="ChartSeriesType.Line"
+                                         Axis="PowerAxis" />
+                            <ChartSeries Name="Load"
+                                         Data="@LoadPowerData"
+                                         Field="@nameof(ChartMqttDataItem.CurrentValue)"
+                                         CategoryField="@nameof(ChartMqttDataItem.Timestamp)"
+                                         Type="ChartSeriesType.Line"
+                                         Axis="PowerAxis" />
+                            <ChartSeries Name="Battery"
+                                         Data="@BatteryPowerData"
+                                         Field="@nameof(ChartMqttDataItem.CurrentValue)"
+                                         CategoryField="@nameof(ChartMqttDataItem.Timestamp)"
+                                         Type="ChartSeriesType.Line"
+                                         Axis="PowerAxis" />
+                            <ChartSeries Name="Grid"
+                                         Data="@GridPowerData"
+                                         Field="@nameof(ChartMqttDataItem.CurrentValue)"
+                                         CategoryField="@nameof(ChartMqttDataItem.Timestamp)"
+                                         Type="ChartSeriesType.Line"
+                                         Axis="PowerAxis" />
+                        </ChartSeriesItems>
+
+                        <ChartCategoryAxes>
+                            <ChartCategoryAxis BaseUnit="ChartCategoryAxisBaseUnit.Minutes" Type="ChartCategoryAxisType.Date">
+                                <ChartCategoryAxisLabels Format="{0:mm ssss}" />
+                            </ChartCategoryAxis>
+                        </ChartCategoryAxes>
+
+                        <ChartValueAxes>
+                            <ChartValueAxis Name="PowerAxis">
+                                <ChartValueAxisTitle Text="Power" />
+                                <ChartValueAxisLabels Format="{0:N0} W" />
+                                <ChartValueAxisMajorGridLines Visible="false" />
+                            </ChartValueAxis>
+                        </ChartValueAxes>
+                    </TelerikChart>
                 </Content>
             </TileLayoutItem>
            <TileLayoutItem RowSpan="3" ColSpan="5">
