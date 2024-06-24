@@ -10,27 +10,23 @@ namespace EnergyMonitor.Client.Services
         private MqttFactory? mqttFactory;
         private IMqttClient? mqttClient;
 
-        private readonly string host = config["MQTT_HOST"] ??
-            throw new NullReferenceException("A value for the MQTT_HOST environment variable must be set before starting the application.");
-
-        private readonly int port = int.TryParse(config["MQTT_PORT"], out var portNumber) ? portNumber : LogPortWarning();
-
-        private static int LogPortWarning()
-        {
-            Trace.WriteLine(
-    "[WARNING] - The value for MQTT_PORT is invalid or empty, double check this is intended. If your MQTT server operates on a specific port, you need to set the MQTT_PORT environment variable.",
-    "Energy Monitor");
-            return 0;
-        }
+        private readonly string mqttHost = config["MQTT_HOST"] ?? throw new NullReferenceException("A value for the MQTT_HOST environment variable must be set before starting the application.");
+        
+        private readonly string mqttPort = config["MQTT_PORT"] ?? string.Empty;
 
         public async Task SetupMqtt(Func<MqttApplicationMessageReceivedEventArgs,Task> messageReceivedDelegate)
         {
             mqttFactory = new MqttFactory();
             mqttClient = mqttFactory.CreateMqttClient();
 
+            // Read the port number. If it's missing or invalid, use the default MQTT port (1883).
+            var port = int.TryParse(mqttPort, out var portNumber) 
+                ? portNumber 
+                : UseDefaultWithWarning();
+
             // Connect to MQTT server
             var clientOptions = new MqttClientOptionsBuilder()
-                .WithTcpServer(host, port)
+                .WithTcpServer(mqttHost, port)
                 .Build();
 
             // Subscribe to message received event BEFORE connecting
@@ -70,5 +66,13 @@ namespace EnergyMonitor.Client.Services
             }
         }
 
+
+
+
+        private static int UseDefaultWithWarning()
+        {
+            Trace.WriteLine("[WARNING] - The value for MQTT_PORT is invalid or empty, defaulting to port 1883.", "Energy Monitor");
+            return 1883;
+        }
     }
 }
