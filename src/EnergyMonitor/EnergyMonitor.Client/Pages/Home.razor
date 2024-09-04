@@ -7,8 +7,8 @@
 @inject IConfiguration Configuration
 
 <div class="k-d-flex-col k-justify-content-center">
-    @* <div style="text-align:center">
-        <TelerikSwitch OnLabel="Live"
+    <div style="text-align:center">
+        @* <TelerikSwitch OnLabel="Live"
                        OffLabel="Paused"
                        Value="@IsSubscribed"
                        ValueChanged="@((bool val) => OnIsSubscribedChanged(val))"
@@ -17,8 +17,10 @@
         <TelerikSwitch OnLabel="Saving On"
                        OffLabel="Saving Off"
                        Value="@IsDatabaseEnabled"
-                       Width="90px"/>
-    </div> *@
+                       Width="90px"/> *@
+        
+        <TelerikButton OnClick="@OnRefreshClick">Refresh</TelerikButton>
+    </div>
     
     <TelerikTileLayout Columns="5"
                        RowHeight="230px"

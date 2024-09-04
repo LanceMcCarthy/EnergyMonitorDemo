@@ -8,9 +8,6 @@ namespace EnergyMonitor.Client.Pages;
 
 public partial class Home
 {
-    //[Inject]
-    //public MqttService MqttService { get; set; } = default!;
-
     [Inject]
     public MessagesDbService DbService { get; set; } = default!;
 
@@ -33,17 +30,25 @@ public partial class Home
 
     protected override async Task OnInitializedAsync()
     {
-        // Load up last 2 minutes of data
-        var items = await DbService.GetMeasurementsAsync(DateTime.Now.AddMinutes(-2), DateTime.Now);
+        await GetDataAsync();
+    }
+
+    protected async Task OnRefreshClick()
+    {
+        await GetDataAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task GetDataAsync()
+    {
+        // Load up last 2 hours of data
+        var items = await DbService.GetMeasurementsAsync(DateTime.Now.AddHours(-2), DateTime.Now);
 
         // We only use the most recent 60 items from the database on initial load. For a longer timeline, use the /history page
         foreach (var item in items.Take(60))
         {
             await ProcessDataItem(item.Value, TopicHelper.GetTopicName(item.Topic));
         }
-
-        // Update UI not needed here because On
-        //await InvokeAsync(StateHasChanged);
     }
 
     private Task ProcessDataItem(string decodedPayload, TopicName messageTopic)
