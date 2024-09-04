@@ -7,7 +7,7 @@ namespace EnergyMonitor.Client.Pages;
 
 public partial class History
 {
-    [Inject] public MessagesDataService DataService { get; set; } = default!;
+    [Inject] public MessagesDbService DbService { get; set; } = default!;
 
     private ObservableRangeCollection<MqttDataItem> Data { get; } = new();
     public DateTime StartDate { get; set; } = DateTime.Now.AddDays(-1);
@@ -34,7 +34,7 @@ public partial class History
 
     private async Task UpdateGridAsync()
     {
-        var result = await DataService.GetMeasurementsAsync(StartDate, EndDate);
+        var result = await DbService.GetMeasurementsAsync(StartDate, EndDate);
 
         Data.Clear();
 
