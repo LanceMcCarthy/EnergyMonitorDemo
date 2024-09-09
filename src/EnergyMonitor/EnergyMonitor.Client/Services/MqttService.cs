@@ -3,7 +3,7 @@ using Microsoft.Extensions.Hosting;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Packets;
-using System.Text;
+using static EnergyMonitor.Client.Models.MessageUtilities;
 
 namespace EnergyMonitor.Client.Services;
 
@@ -35,19 +35,7 @@ public class MqttService(IConfiguration config, IServiceProvider serviceProvider
             throw new NullReferenceException("The MQTT client could not be created.");
 
         // Add event handler for when a message comes in
-        mqttClient.ApplicationMessageReceivedAsync += async e =>
-        {
-            // Read the payload. ArraySegment<byte>, so we need to convert to byte[], then to ASCII.
-            var decodedPayload = Encoding.ASCII.GetString(e.ApplicationMessage.PayloadSegment.ToArray());
-
-            // Update live values
-            await ProcessDataItem(decodedPayload, TopicHelper.GetTopicName(e.ApplicationMessage.Topic));
-
-            // Create a scope to access the DbService and add item to the DB
-            using var scope = serviceProvider.CreateScope();
-            var dbService = scope.ServiceProvider.GetRequiredService<MessagesDbService>();
-            await dbService.AddMeasurementAsync(new MqttDataItem{ Topic = e.ApplicationMessage.Topic, Value = decodedPayload, Timestamp = DateTime.Now});
-        };
+        mqttClient.ApplicationMessageReceivedAsync += OnMessageReceived;
 
         // Connect to the MQTT server
         var port = int.TryParse(mqttPort, out var portNumber) ? portNumber : 1883;
@@ -60,6 +48,26 @@ public class MqttService(IConfiguration config, IServiceProvider serviceProvider
                 .WithTopicFilter(f => { f.WithTopic("solar_assistant/#"); })
                 .Build(), 
             CancellationToken.None);
+    }
+
+    // On every message, we update the live values and add the item to the database
+    private async Task OnMessageReceived(MqttApplicationMessageReceivedEventArgs e)
+    {
+        // Read the payload. ArraySegment<byte>, so we need to convert to byte[], then to ASCII.
+        var decodedPayload = e.ApplicationMessage.PayloadSegment.GetTopicValue();
+
+        // Update live values
+        await ProcessDataItem(decodedPayload, GetTopicName(e.ApplicationMessage.Topic));
+
+        // Create a scope to access the DbService and add item to the DB
+        using var scope = serviceProvider.CreateScope();
+        var dbService = scope.ServiceProvider.GetRequiredService<MessagesDbService>();
+        await dbService.AddMeasurementAsync(new MqttDataItem
+        {
+            Topic = e.ApplicationMessage.Topic, 
+            Value = decodedPayload, 
+            Timestamp = DateTime.Now
+        });
     }
 
     // This is called by IHostedService

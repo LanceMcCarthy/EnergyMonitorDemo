@@ -1,16 +1,11 @@
-﻿using System.Diagnostics;
-using System.Reflection;
+﻿using System.Text;
 
 namespace EnergyMonitor.Client.Models;
 
-public static class TopicHelper
+public static class MessageUtilities
 {
-    /// <summary>
-    /// Converts the topic string (e.g. 'solar_assistant/inverter_1/battery_current/state') to a more easily workable enum
-    /// </summary>
-    /// <param name="topic">MQTT topic (e.g. 'solar_assistant/inverter_1/battery_current/state')</param>
-    /// <returns>The matching enum equivalent.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">If the topic has no known match, an out of range exception wil be thrown. If needed, add the nw unknown type to the enum.</exception>
+    public static string GetTopicValue(this ArraySegment<byte> bytes) => Encoding.ASCII.GetString(bytes.ToArray());
+
     public static TopicName GetTopicName(string topic)
     {
         return topic switch

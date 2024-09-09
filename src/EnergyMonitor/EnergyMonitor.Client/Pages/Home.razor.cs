@@ -3,6 +3,7 @@ using EnergyMonitor.Client.Models;
 using EnergyMonitor.Client.Services;
 using Microsoft.AspNetCore.Components;
 using Telerik.Blazor.Components;
+using static EnergyMonitor.Client.Models.MessageUtilities;
 
 namespace EnergyMonitor.Client.Pages;
 
@@ -47,7 +48,7 @@ public partial class Home
         // We only use the most recent 60 items from the database on initial load. For a longer timeline, use the /history page
         foreach (var item in items.Take(60))
         {
-            await ProcessDataItem(item.Value, TopicHelper.GetTopicName(item.Topic));
+            await ProcessDataItem(item.Value, GetTopicName(item.Topic));
         }
     }
 
