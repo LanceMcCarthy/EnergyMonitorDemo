@@ -2,7 +2,6 @@
 @using EnergyMonitor.Client.Components.Grids.All
 @using EnergyMonitor.Client.Components.Indicators
 @using EnergyMonitor.Client.Models
-@using EnergyMonitor.Client.Components.Charts.SystemPower
 
 @inject IConfiguration Configuration
 
@@ -10,13 +9,6 @@
     <div style="text-align:center">
         <TelerikSwitch Value="@IsTimerRunning"
                        ValueChanged="@((bool val) => OnIsTimerRunning(val))"/>
-
-        @* <TelerikSwitch OnLabel="Saving On"
-                       OffLabel="Saving Off"
-                       Value="@IsDatabaseEnabled"
-                       Width="90px"/> 
-        
-        <TelerikButton OnClick="@OnStopTimerClick">Stop Refresh</TelerikButton>*@
     </div>
     
     <TelerikTileLayout Columns="5"
