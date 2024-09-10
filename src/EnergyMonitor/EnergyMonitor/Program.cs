@@ -28,8 +28,8 @@ else
     builder.Services.AddDbContext<MeasurementsDbContext>(o => { o.UseSqlite("Data Source=Measurements.db", b => b.MigrationsAssembly("EnergyMonitor")); });
 }
 
-builder.Services.AddScoped<MqttUiService>();
-builder.Services.AddScoped<MessagesDataService>();
+builder.Services.AddScoped<MessagesDbService>();
+builder.Services.AddHostedService<MqttService>();
 
 var app = builder.Build();
 

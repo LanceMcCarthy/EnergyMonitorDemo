@@ -1,22 +1,22 @@
 ﻿using EnergyMonitor.Client.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace EnergyMonitor.Client.Services
+namespace EnergyMonitor.Client.Services;
+
+public class MessagesDbService(MeasurementsDbContext dbContext) : IDisposable
 {
-    public class MessagesDataService(MeasurementsDbContext dbContext)
+    public async Task<List<MqttDataItem>> GetAllMeasurementsAsync()
     {
-        public async Task<List<MqttDataItem>> GetAllMeasurementsAsync()
-        {
             return await dbContext.Measurements.ToListAsync();
         }
 
-        public async Task<List<MqttDataItem>> GetMeasurementsAsync(DateTime start, DateTime end)
-        {
+    public async Task<List<MqttDataItem>> GetMeasurementsAsync(DateTime start, DateTime end)
+    {
             return await dbContext.Measurements.Where(i => i.Timestamp > start && i.Timestamp < end).ToListAsync();
         }
 
-        public async Task<MqttDataItem> AddMeasurementAsync(MqttDataItem dataItem)
-        {
+    public async Task<MqttDataItem> AddMeasurementAsync(MqttDataItem dataItem)
+    {
             dbContext.Measurements.Add(dataItem);
 
             await dbContext.SaveChangesAsync();
@@ -24,8 +24,8 @@ namespace EnergyMonitor.Client.Services
             return dataItem;
         }
 
-        public async Task<MqttDataItem> UpdateMeasurementAsync(MqttDataItem item)
-        {
+    public async Task<MqttDataItem> UpdateMeasurementAsync(MqttDataItem item)
+    {
             var productExist = dbContext.Measurements.FirstOrDefault(p => p.Id == item.Id);
 
             if (productExist != null)
@@ -38,11 +38,15 @@ namespace EnergyMonitor.Client.Services
             return item;
         }
 
-        public async Task DeleteMeasurementAsync(MqttDataItem item)
-        {
+    public async Task DeleteMeasurementAsync(MqttDataItem item)
+    {
             dbContext.Measurements.Remove(item);
 
             await dbContext.SaveChangesAsync();
-        }
+    }
+
+    public void Dispose()
+    {
+        dbContext.Dispose();
     }
 }
