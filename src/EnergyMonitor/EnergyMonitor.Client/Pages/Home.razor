@@ -2,22 +2,13 @@
 @using EnergyMonitor.Client.Components.Grids.All
 @using EnergyMonitor.Client.Components.Indicators
 @using EnergyMonitor.Client.Models
-@using EnergyMonitor.Client.Components.Charts.SystemPower
 
 @inject IConfiguration Configuration
 
 <div class="k-d-flex-col k-justify-content-center">
     <div style="text-align:center">
-        <TelerikSwitch OnLabel="Live"
-                       OffLabel="Paused"
-                       Value="@IsSubscribed"
-                       ValueChanged="@((bool val) => OnIsSubscribedChanged(val))"
-                       Width="80px"/>
-
-        <TelerikSwitch OnLabel="Saving On"
-                       OffLabel="Saving Off"
-                       Value="@IsDatabaseEnabled"
-                       Width="90px"/>
+        <TelerikSwitch Value="@IsTimerRunning"
+                       ValueChanged="@((bool val) => OnIsTimerRunning(val))"/>
     </div>
     
     <TelerikTileLayout Columns="5"
