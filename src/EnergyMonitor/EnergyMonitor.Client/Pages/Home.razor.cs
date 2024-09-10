@@ -23,7 +23,7 @@ public partial class Home
     private TelerikChart? SystemPowerChartRef { get; set; }
 
     private CancellationTokenSource? cts;
-    private int LoadDataInterval { get; set; } = 200;
+    private int LoadDataInterval { get; set; } = 2000;
     private bool IsTimerRunning { get; set; }
 
     private double BatteryChargePercentage { get; set; } = 0;
@@ -114,6 +114,7 @@ public partial class Home
         CurrentBatteryPowerTotal = items.FindLast(d => d.Topic == GetTopic(TopicName.BatteryPower_Total))?.Value!;
         CurrentGridTotal = items.FindLast(d => d.Topic == GetTopic(TopicName.GridPower_Inverter1))?.Value!;
         BatteryChargePercentage = Convert.ToDouble(items.FindLast(d => d.Topic == GetTopic(TopicName.BatteryStateOfCharge_Total))?.Value!);
+        ChargerSourcePriority = items.FindLast(d => d.Topic == GetTopic(TopicName.ChargerSourcePriority_Inverter1))?.Value!;
     }
 
     private void ItemResize()
