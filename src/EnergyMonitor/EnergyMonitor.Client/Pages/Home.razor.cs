@@ -13,14 +13,19 @@ public partial class Home
     public MessagesDbService DbService { get; set; } = default!;
 
     //private ObservableRangeCollection<MqttDataItem>? AllData { get; } = new(){ Maximum = 120 };
-    private ObservableRangeCollection<ChartMqttDataItem> SolarPowerData { get; } = new(){ MaximumCount = 120 };
-    private ObservableRangeCollection<ChartMqttDataItem> LoadPowerData { get; } = new(){ MaximumCount = 120 };
-    private ObservableRangeCollection<ChartMqttDataItem> BatteryPowerData { get; } = new(){ MaximumCount = 120 };
-    private ObservableRangeCollection<ChartMqttDataItem> GridPowerData { get; } = new(){ MaximumCount = 120 };
-    private ObservableRangeCollection<ChartMqttDataItem> BatteryChargeData { get; } = new(){ MaximumCount = 120 };
+    private ObservableRangeCollection<ChartMqttDataItem> SolarPowerData { get; } = new(){ MaximumCount = 300 };
+    private ObservableRangeCollection<ChartMqttDataItem> LoadPowerData { get; } = new(){ MaximumCount = 300 };
+    private ObservableRangeCollection<ChartMqttDataItem> BatteryPowerData { get; } = new(){ MaximumCount = 300 };
+    private ObservableRangeCollection<ChartMqttDataItem> GridPowerData { get; } = new(){ MaximumCount = 300 };
+    private ObservableRangeCollection<ChartMqttDataItem> BatteryChargeData { get; } = new(){ MaximumCount = 300 };
 
     private TelerikChart? BatteryPercentageChartRef { get; set; }
     private TelerikChart? SystemPowerChartRef { get; set; }
+
+    private CancellationTokenSource? cts;
+    private int LoadDataInterval { get; set; } = 200;
+    private bool IsTimerRunning { get; set; }
+
     private double BatteryChargePercentage { get; set; } = 0;
     private string CurrentSolar { get; set; } = "0";
     private string CurrentLoad { get; set; } = "0";
@@ -29,114 +34,86 @@ public partial class Home
     private string CurrentInverterMode { get; set; } = "Solar/Battery/Grid";
     private string ChargerSourcePriority { get; set; } = "Solar";
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await GetDataAsync();
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (firstRender)
+        {
+            cts = new CancellationTokenSource();
+
+            IsTimerRunning = true;
+
+            await IntervalDataUpdate();
+        }
     }
 
-    protected async Task OnRefreshClick()
+    private async Task IntervalDataUpdate()
     {
-        await GetDataAsync();
-        await InvokeAsync(StateHasChanged);
+        while (cts?.Token != null)
+        {
+            await Task.Delay(LoadDataInterval, cts.Token);
+
+            await GetDataAsync();
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnIsTimerRunning(bool val)
+    {
+        if (val)
+        {
+            if(cts?.Token == null)
+            {
+                cts = new CancellationTokenSource();
+
+                await IntervalDataUpdate();
+            }
+        }
+        else
+        {
+            if(cts != null)
+                await cts.CancelAsync();
+        }
     }
 
     private async Task GetDataAsync()
     {
-        // Load up last 2 hours of data
-        var items = await DbService.GetMeasurementsAsync(DateTime.Now.AddHours(-2), DateTime.Now);
+        var items = await DbService.GetMeasurementsAsync(DateTime.Now.AddMinutes(-30), DateTime.Now);
 
         // We only use the most recent 60 items from the database on initial load. For a longer timeline, use the /history page
         foreach (var item in items.Take(60))
         {
-            await ProcessDataItem(item.Value, GetTopicName(item.Topic));
-        }
-    }
+            var topicName = GetTopicName(item.Topic);
 
-    private Task ProcessDataItem(string decodedPayload, TopicName messageTopic)
-    {
-        var item = new ChartMqttDataItem { Category = messageTopic, Timestamp = DateTime.Now };
-
-        switch (messageTopic)
-        {
-            case TopicName.DeviceMode_Inverter1:
-                CurrentInverterMode = decodedPayload;
-                break;
-
-            case TopicName.ChargerSourcePriority_Inverter1:
-                ChargerSourcePriority = decodedPayload;
-                break;
-
-            case TopicName.LoadPower_Inverter1:
-                item.CurrentValue = Convert.ToDouble(decodedPayload);
-                CurrentLoad = $"{item.CurrentValue}";
-                LoadPowerData.Add(item);
-                break;
-
-            case TopicName.PvPower_Inverter1:
-                item.CurrentValue = Convert.ToDouble(decodedPayload);
-                CurrentSolar = $"{item.CurrentValue}";
-                SolarPowerData.Add(item);
-                break;
-
-            case TopicName.BatteryPower_Total:
-                item.CurrentValue = Convert.ToDouble(decodedPayload);
-                CurrentBatteryPowerTotal = $"{item.CurrentValue}";
-                BatteryPowerData.Add(item);
-                break;
-
-            case TopicName.GridPower_Inverter1:
-                item.CurrentValue = Convert.ToDouble(decodedPayload);
-                CurrentGridTotal = $"{item.CurrentValue}";
-                GridPowerData.Add(item);
-                break;
-
-            case TopicName.BatteryStateOfCharge_Total:
-                BatteryChargePercentage = item.CurrentValue = Convert.ToDouble(decodedPayload);
-                BatteryChargeData.Add(item);
-                break;
-
-            //case TopicName.PvEnergy_Total:
-            //case TopicName.LoadEnergy_Total:
-            //case TopicName.BatteryEnergyIn_Total:
-            //case TopicName.BatteryEnergyOut_Total:
-            //case TopicName.GridEnergyIn_Total:
-            //case TopicName.GridEnergyOut_Total:
-            //case TopicName.BusVoltage_Total:
-            //case TopicName.GridFrequency_Inverter1:
-            //case TopicName.PvCurrent1_Inverter1:
-            //case TopicName.BatteryVoltage_Inverter1:
-            //case TopicName.LoadApparentPower_Inverter1:
-            //case TopicName.PvCurrent2_Inverter1:
-            //case TopicName.Temperature_Inverter1:
-            //case TopicName.LoadPercentage_Inverter1:
-            //case TopicName.BatteryCurrent_Inverter1:
-            //case TopicName.PvVoltage1_Inverter1:
-            //case TopicName.PvVoltage2_Inverter1:
-            //case TopicName.PvPower1_Inverter1:
-            //case TopicName.GridVoltage_Inverter1:
-            //case TopicName.AcOutputFrequency_Inverter1:
-            //case TopicName.AcOutputVoltage_Inverter1:
-            //case TopicName.PvPower2_Inverter1:
-            //case TopicName.BatteryAbsorptionChargeVoltage_Inverter1:
-            //case TopicName.MaxChargeCurrent_Inverter1:
-            //case TopicName.BatteryFloatChargeVoltage_Inverter1:
-            //case TopicName.MaxGridChargeCurrent_Inverter1:
-            //case TopicName.OutputSourcePriority_Inverter1:
-            //case TopicName.ToGridBatteryVoltage_Inverter1:
-            //case TopicName.ShutdownBatteryVoltage_Inverter1:
-            //case TopicName.BackToBatteryVoltage_Inverter1:
-            //case TopicName.SerialNumber_Inverter1:
-            //case TopicName.PowerSaving_Inverter1:
-            //case TopicName.Current_Battery1:
-            //case TopicName.Voltage_Battery1:
-            //case TopicName.Power_Battery1:
-            //case TopicName.StateOfCharge_Battery1:
-            //case TopicName.Unknown:
-            default:
-                break;
+            // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
+            switch (topicName)
+            {
+                case TopicName.LoadPower_Inverter1:
+                    LoadPowerData.Add(new ChartMqttDataItem{ Category = topicName, CurrentValue = Convert.ToDouble(item.Value), Timestamp = DateTime.Now });
+                    break;
+                case TopicName.PvPower_Inverter1:
+                    SolarPowerData.Add(new ChartMqttDataItem{ Category = topicName, CurrentValue = Convert.ToDouble(item.Value), Timestamp = DateTime.Now });
+                    break;
+                case TopicName.BatteryPower_Total:
+                    BatteryPowerData.Add(new ChartMqttDataItem{ Category = topicName, CurrentValue = Convert.ToDouble(item.Value), Timestamp = DateTime.Now });
+                    break;
+                case TopicName.GridPower_Inverter1:
+                    GridPowerData.Add(new ChartMqttDataItem{ Category = topicName, CurrentValue = Convert.ToDouble(item.Value), Timestamp = DateTime.Now });
+                    break;
+                case TopicName.BatteryStateOfCharge_Total:
+                    BatteryChargeData.Add(new ChartMqttDataItem{ Category = topicName, CurrentValue = Convert.ToDouble(item.Value), Timestamp = DateTime.Now });
+                    break;
+            }
         }
 
-        return Task.CompletedTask;
+        CurrentInverterMode = items.FindLast(d => d.Topic == GetTopic(TopicName.DeviceMode_Inverter1))?.Value!;
+        CurrentLoad = items.FindLast(d => d.Topic == GetTopic(TopicName.LoadPower_Inverter1))?.Value!;
+        CurrentSolar = items.FindLast(d => d.Topic == GetTopic(TopicName.PvPower_Inverter1))?.Value!;
+        CurrentBatteryPowerTotal = items.FindLast(d => d.Topic == GetTopic(TopicName.BatteryPower_Total))?.Value!;
+        CurrentGridTotal = items.FindLast(d => d.Topic == GetTopic(TopicName.GridPower_Inverter1))?.Value!;
+        BatteryChargePercentage = Convert.ToDouble(items.FindLast(d => d.Topic == GetTopic(TopicName.BatteryStateOfCharge_Total))?.Value!);
     }
 
     private void ItemResize()

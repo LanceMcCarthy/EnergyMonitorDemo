@@ -8,18 +8,15 @@
 
 <div class="k-d-flex-col k-justify-content-center">
     <div style="text-align:center">
-        @* <TelerikSwitch OnLabel="Live"
-                       OffLabel="Paused"
-                       Value="@IsSubscribed"
-                       ValueChanged="@((bool val) => OnIsSubscribedChanged(val))"
-                       Width="80px"/>
+        <TelerikSwitch Value="@IsTimerRunning"
+                       ValueChanged="@((bool val) => OnIsTimerRunning(val))"/>
 
-        <TelerikSwitch OnLabel="Saving On"
+        @* <TelerikSwitch OnLabel="Saving On"
                        OffLabel="Saving Off"
                        Value="@IsDatabaseEnabled"
-                       Width="90px"/> *@
+                       Width="90px"/> 
         
-        <TelerikButton OnClick="@OnRefreshClick">Refresh</TelerikButton>
+        <TelerikButton OnClick="@OnStopTimerClick">Stop Refresh</TelerikButton>*@
     </div>
     
     <TelerikTileLayout Columns="5"
