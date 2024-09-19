@@ -1,5 +1,4 @@
 ﻿@page "/"
-@using EnergyMonitor.Client.Components.Grids.All
 @using EnergyMonitor.Client.Components.Indicators
 @using EnergyMonitor.Client.Models
 
@@ -18,39 +17,37 @@
                        Resizable="true"
                        OnResize="ItemResize">
         <TileLayoutItems>
-            <TileLayoutItem HeaderText="Solar (PV)" RowSpan="1" ColSpan="1">
+            <TileLayoutItem HeaderText="Solar" RowSpan="1" ColSpan="1">
                 <Content>
-                    <GenericDisplay Value="@CurrentSolar" Color="#37B400" Subtitle="Solar (now)" />
+                    <GenericDisplay Value="@SolarPower" Color="#37B400" Subtitle="Watts" />
                 </Content>
             </TileLayoutItem>
+
             <TileLayoutItem HeaderText="Battery" RowSpan="1" ColSpan="1">
                 <Content>
-                    <GenericDisplay Value="@CurrentBatteryPowerTotal" Color="#F31700" Subtitle="Battery (now)" />
+                    <GenericDisplay Value="@BatteryPower" Color="#F31700" Subtitle="Watts" />
                 </Content>
             </TileLayoutItem>
+
             <TileLayoutItem HeaderText="Grid" RowSpan="1" ColSpan="1">
                 <Content>
-                    <GenericDisplay Value="@CurrentGridTotal" Color="#FFC000" Subtitle="Grid (now)" />
+                    <GenericDisplay Value="@GridPower" Color="#FFC000" Subtitle="Watts" />
                 </Content>
             </TileLayoutItem>
+
             <TileLayoutItem HeaderText="Load" RowSpan="1" ColSpan="1">
                 <Content>
-                    <GenericDisplay Value="@CurrentLoad" Color="#FFC000" Subtitle="Load (now)" />
+                    <GenericDisplay Value="@LoadPower" Color="#FFC000" Subtitle="Watts" />
                 </Content>
             </TileLayoutItem>
-            <TileLayoutItem HeaderText="Battery" RowSpan="1" ColSpan="1">
+
+            <TileLayoutItem HeaderText="Battery Level" RowSpan="1" ColSpan="1">
                 <Content>
-                    <BatteryGauge BatteryChargePercentage="@BatteryChargePercentage"/>
+                    <BatteryGauge BatteryChargePercentage="@BatteryChargeLevel"/>
                 </Content>
             </TileLayoutItem>
-            <TileLayoutItem Class="chart-tile" RowSpan="2" ColSpan="5">
-                <HeaderTemplate>
-                    <div>
-                        <span style="font-size:16px;font-weight:400">
-                            Total Generation |  Inverter Mode: @((MarkupString)CurrentInverterMode) | Charging Source Priority: @((MarkupString)ChargerSourcePriority)
-                        </span>
-                    </div>
-                </HeaderTemplate>
+
+            <TileLayoutItem Class="chart-tile" RowSpan="2" ColSpan="4">
                 <Content>
                     <TelerikChart @ref="@SystemPowerChartRef" Width="100%" Transitions="false" RenderAs="RenderingMode.Canvas">
                         <ChartTooltip Visible="true" />
@@ -98,7 +95,8 @@
                     </TelerikChart>
                 </Content>
             </TileLayoutItem>
-           <TileLayoutItem RowSpan="3" ColSpan="5">
+
+            @* <TileLayoutItem RowSpan="3" ColSpan="5">
                 <HeaderTemplate>
                     <span style="font-size:16px;font-weight:400">Battery Charge</span>
                 </HeaderTemplate>
@@ -129,6 +127,45 @@
                             </ChartValueAxis>
                         </ChartValueAxes>
                     </TelerikChart>
+                </Content>
+            </TileLayoutItem> *@
+            
+            <TileLayoutItem HeaderText="Info" RowSpan="2" ColSpan="1">
+                <Content>
+                    <text>Inverter Mode: @InverterMode</text>
+                    <br />
+                    <text>Charging Priority: @ChargerSourcePriority</text>
+                    <br />
+                    <text>Voltage</text>
+                    <br />
+                    <text>Battery: @BatteryVoltage</text>
+                    <br/>
+                    <text>Back To Battery: @BackToBatteryVoltage</text>
+                    <br/>
+                    <text>Solar Panels: @Pv1Voltage</text>
+                    <br/>
+                    <text>Bus: @BusVoltage</text>
+                    <br/>
+                    <text>Output: @OutputVoltage</text>
+                    <br/>
+                    <text>Frequency</text>
+                    <br />
+                    <text>Grid: @GridFrequency</text>
+                    <br/>
+                    <text>Inverter: @OutputFrequency</text>
+                </Content>
+            </TileLayoutItem>
+
+            <TileLayoutItem RowSpan="2" ColSpan="4">
+                <HeaderTemplate>
+                    <span style="font-size:16px;font-weight:400">Message History</span>
+                </HeaderTemplate>
+                <Content>
+                    @foreach(var item in Log)
+                    {
+                        <text>@item.Value - @item.Timestamp - @item.Topic</text>
+                        <br/>
+                    }
                 </Content>
             </TileLayoutItem>
         </TileLayoutItems>
