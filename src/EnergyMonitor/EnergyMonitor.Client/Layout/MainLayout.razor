@@ -1,4 +1,5 @@
-﻿@inherits LayoutComponentBase
+﻿@using EnergyMonitor.Client.Services
+@inherits LayoutComponentBase
 
 <TelerikRootComponent>
     <div class="page">
@@ -8,7 +9,16 @@
 
         <main>
             <div class="top-row px-4">
-                <a href="https://www.telerik.com/blazor-ui" target="_blank">UI for Blazor</a>
+                <text>Connected</text>
+                
+                @if (IsServiceSubscribedToTopics)
+                {
+                    <TelerikButton Title="MQTT Connection" FillMode="@ThemeConstants.Button.FillMode.Flat" Icon="@SvgIcon.CheckCircle" ThemeColor="@ThemeConstants.FontIcon.ThemeColor.Success"></TelerikButton>
+                }
+                else
+                {
+                    <TelerikButton Title="MQTT Connection" FillMode="@ThemeConstants.Button.FillMode.Flat" Icon="@SvgIcon.CancelCircle" ThemeColor="@ThemeConstants.FontIcon.ThemeColor.Error"></TelerikButton>
+                }
             </div>
 
             <article class="content px-4">
@@ -23,3 +33,35 @@
         <a class="dismiss">🗙</a>
     </div>
 </TelerikRootComponent>
+
+@code {
+    [Inject]
+    public MqttService LiveService { get; set; } = default!;
+
+    private bool IsServiceSubscribedToTopics { get; set; }
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            IsServiceSubscribedToTopics = LiveService.IsSubscribed;
+            LiveService.SubscriptionChanged += OnLiveServiceOnSubscriptionChanged;
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private async Task OnLiveServiceOnSubscriptionChanged()
+    {
+        IsServiceSubscribedToTopics = LiveService.IsSubscribed;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public class DrawerItem
+    {
+        public string Text { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+        public ISvgIcon? Icon { get; set; }
+    }
+}

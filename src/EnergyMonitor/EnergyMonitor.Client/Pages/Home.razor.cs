@@ -12,27 +12,36 @@ public partial class Home
     [Inject]
     public MessagesDbService DbService { get; set; } = default!;
 
-    //private ObservableRangeCollection<MqttDataItem>? AllData { get; } = new(){ Maximum = 120 };
-    private ObservableRangeCollection<ChartMqttDataItem> SolarPowerData { get; } = new(){ MaximumCount = 300 };
-    private ObservableRangeCollection<ChartMqttDataItem> LoadPowerData { get; } = new(){ MaximumCount = 300 };
-    private ObservableRangeCollection<ChartMqttDataItem> BatteryPowerData { get; } = new(){ MaximumCount = 300 };
-    private ObservableRangeCollection<ChartMqttDataItem> GridPowerData { get; } = new(){ MaximumCount = 300 };
-    private ObservableRangeCollection<ChartMqttDataItem> BatteryChargeData { get; } = new(){ MaximumCount = 300 };
+    ObservableRangeCollection<ChartMqttDataItem> SolarPowerData { get; } = new(){ MaximumCount = 300 };
+    ObservableRangeCollection<ChartMqttDataItem> LoadPowerData { get; } = new(){ MaximumCount = 300 };
+    ObservableRangeCollection<ChartMqttDataItem> BatteryPowerData { get; } = new(){ MaximumCount = 300 };
+    ObservableRangeCollection<ChartMqttDataItem> GridPowerData { get; } = new(){ MaximumCount = 300 };
+    ObservableRangeCollection<ChartMqttDataItem> BatteryChargeData { get; } = new(){ MaximumCount = 300 };
+    ObservableRangeCollection<MqttDataItem> Log { get; set; } = new();
 
-    private TelerikChart? BatteryPercentageChartRef { get; set; }
-    private TelerikChart? SystemPowerChartRef { get; set; }
+    TelerikChart? BatteryPercentageChartRef { get; set; }
+    TelerikChart? SystemPowerChartRef { get; set; }
 
-    private CancellationTokenSource? cts;
-    private int LoadDataInterval { get; set; } = 2000;
-    private bool IsTimerRunning { get; set; }
+    CancellationTokenSource? cts;
+    int LoadDataInterval { get; set; } = 2000;
+    bool IsTimerRunning { get; set; }
 
-    private double BatteryChargePercentage { get; set; } = 0;
-    private string CurrentSolar { get; set; } = "0";
-    private string CurrentLoad { get; set; } = "0";
-    private string CurrentBatteryPowerTotal { get; set; } = "0";
-    private string CurrentGridTotal { get; set; } = "0";
-    private string CurrentInverterMode { get; set; } = "Solar/Battery/Grid";
-    private string ChargerSourcePriority { get; set; } = "Solar";
+    string SolarPower { get; set; } = "0";
+    string LoadPower { get; set; } = "0";
+    string BatteryPower { get; set; } = "0";
+    string GridPower { get; set; } = "0";
+    string InverterMode { get; set; } = "Solar/Battery/Grid";
+    string ChargerSourcePriority { get; set; } = "Solar";
+    double BatteryChargeLevel { get; set; } = 0;
+
+    string BatteryVoltage { get; set; } = "0";
+    string BackToBatteryVoltage { get; set; } = "0";
+    string Pv1Voltage { get; set; } = "0";
+    string BusVoltage { get; set; } = "0";
+    string OutputVoltage { get; set; } = "0";
+
+    string OutputFrequency { get; set; } = "0";
+    string GridFrequency { get; set; } = "0";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -82,9 +91,17 @@ public partial class Home
     {
         var items = await DbService.GetMeasurementsAsync(DateTime.Now.AddMinutes(-30), DateTime.Now);
 
+        Log.Clear();
+        Log.AddRange(items);
+
         // We only use the most recent 60 items from the database on initial load. For a longer timeline, use the /history page
         foreach (var item in items.Take(60))
         {
+            if (item.Topic == null)
+                continue;
+
+            
+
             var topicName = GetTopicName(item.Topic);
 
             // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
@@ -108,13 +125,23 @@ public partial class Home
             }
         }
 
-        CurrentInverterMode = items.FindLast(d => d.Topic == GetTopic(TopicName.DeviceMode_Inverter1))?.Value!;
-        CurrentLoad = items.FindLast(d => d.Topic == GetTopic(TopicName.LoadPower_Inverter1))?.Value!;
-        CurrentSolar = items.FindLast(d => d.Topic == GetTopic(TopicName.PvPower_Inverter1))?.Value!;
-        CurrentBatteryPowerTotal = items.FindLast(d => d.Topic == GetTopic(TopicName.BatteryPower_Total))?.Value!;
-        CurrentGridTotal = items.FindLast(d => d.Topic == GetTopic(TopicName.GridPower_Inverter1))?.Value!;
-        BatteryChargePercentage = Convert.ToDouble(items.FindLast(d => d.Topic == GetTopic(TopicName.BatteryStateOfCharge_Total))?.Value!);
-        ChargerSourcePriority = items.FindLast(d => d.Topic == GetTopic(TopicName.ChargerSourcePriority_Inverter1))?.Value!;
+        SolarPower = items.Where(d => d.Topic == GetTopic(TopicName.PvPower_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
+        GridPower = items.Where(d => d.Topic == GetTopic(TopicName.GridPower_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
+        LoadPower = items.Where(d => d.Topic == GetTopic(TopicName.LoadPower_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
+        BatteryPower = items.Where(d => d.Topic == GetTopic(TopicName.BatteryPower_Total)).OrderBy(d=>d.Timestamp).LastOrDefault()?.Value ?? "0";
+        BatteryChargeLevel = Convert.ToDouble(items.Where(d => d.Topic == GetTopic(TopicName.BatteryStateOfCharge_Total)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0");
+        InverterMode = items.Where(d => d.Topic == GetTopic(TopicName.DeviceMode_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "unknown";
+        ChargerSourcePriority = items.Where(d => d.Topic == GetTopic(TopicName.ChargerSourcePriority_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "unknown";
+
+        GridFrequency = items.Where(d => d.Topic == GetTopic(TopicName.GridFrequency_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
+        OutputFrequency = items.Where(d => d.Topic == GetTopic(TopicName.AcOutputFrequency_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
+
+
+        OutputVoltage = items.Where(d => d.Topic == GetTopic(TopicName.AcOutputVoltage_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
+        BatteryVoltage = items.Where(d => d.Topic == GetTopic(TopicName.BatteryVoltage_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
+        BackToBatteryVoltage = items.Where(d => d.Topic == GetTopic(TopicName.BackToBatteryVoltage_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
+        Pv1Voltage = items.Where(d => d.Topic == GetTopic(TopicName.PvVoltage1_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
+        BusVoltage = items.Where(d => d.Topic == GetTopic(TopicName.BusVoltage_Total)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
     }
 
     private void ItemResize()
