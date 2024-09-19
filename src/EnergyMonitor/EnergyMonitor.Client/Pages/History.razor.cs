@@ -14,12 +14,12 @@ public partial class History
     public DateTime EndDate { get; set; } = DateTime.Now;
     public int DebounceDelay { get; set; } = 333;
 
-    protected override Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
-            UpdateGridAsync().ConfigureAwait(false);
-
-        return base.OnAfterRenderAsync(firstRender);
+        {
+            await UpdateGridAsync();
+        }
     }
 
     private async void OnStartDateChange(object obj)
@@ -34,10 +34,7 @@ public partial class History
 
     private async Task UpdateGridAsync()
     {
-        var result = await DbService.GetMeasurementsAsync(StartDate, EndDate);
-
         Data.Clear();
-
-        Data.AddRange(result);
+        Data.AddRange(await DbService.GetMeasurementsAsync(StartDate, EndDate));
     }
 }

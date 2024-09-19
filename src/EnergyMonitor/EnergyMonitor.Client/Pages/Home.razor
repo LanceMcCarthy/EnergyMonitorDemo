@@ -2,20 +2,33 @@
 @using EnergyMonitor.Client.Components.Indicators
 @using EnergyMonitor.Client.Models
 
-@inject IConfiguration Configuration
-
 <div class="k-d-flex-col k-justify-content-center">
     <div style="text-align:center">
-        <TelerikSwitch Value="@IsTimerRunning"
-                       ValueChanged="@((bool val) => OnIsTimerRunning(val))"/>
+        
     </div>
     
-    <TelerikTileLayout Columns="5"
+    <TelerikToolBar>
+        <ToolBarToggleButton OnClick="ToggleTimer" @bind-Selected="IsTimerRunning">
+            @if (IsTimerRunning)
+            {
+                <text>Autorefresh: On</text>
+            } else
+            {
+                <text>Autorefresh: Off</text>
+            }
+        </ToolBarToggleButton>
+        <ToolBarSpacer></ToolBarSpacer>
+        <ToolBarButton OnClick="ClearTileLayout" Icon="SvgIcon.Trash">Clear Layout</ToolBarButton>
+    </TelerikToolBar>
+    
+    <TelerikTileLayout @ref="TileLayoutInstance"
+                       Columns="5"
                        RowHeight="230px"
                        ColumnWidth="25%"
                        Reorderable="true"
                        Resizable="true"
-                       OnResize="ItemResize">
+                       OnResize="ItemResize"
+                       OnReorder="OnReorder">
         <TileLayoutItems>
             <TileLayoutItem HeaderText="Solar" RowSpan="1" ColSpan="1">
                 <Content>
@@ -95,40 +108,6 @@
                     </TelerikChart>
                 </Content>
             </TileLayoutItem>
-
-            @* <TileLayoutItem RowSpan="3" ColSpan="5">
-                <HeaderTemplate>
-                    <span style="font-size:16px;font-weight:400">Battery Charge</span>
-                </HeaderTemplate>
-                <Content>
-                    <TelerikChart @ref="@BatteryPercentageChartRef" 
-                                  Width="100%"
-                                  Transitions="false" 
-                                  RenderAs="RenderingMode.Canvas">
-                        <ChartTooltip Visible="true" />
-                        <ChartLegend Position="ChartLegendPosition.Bottom" />
-                        <ChartSeriesItems>
-                            <ChartSeries Name="BatteryChargeSeries"
-                                         Data="@BatteryChargeData"
-                                         Field="@nameof(ChartMqttDataItem.CurrentValue)"
-                                         CategoryField="@nameof(ChartMqttDataItem.Timestamp)"
-                                         Type="ChartSeriesType.Area"
-                                         Axis="PowerAxis" />
-                        </ChartSeriesItems>
-                        <ChartCategoryAxes>
-                            <ChartCategoryAxis BaseUnit="ChartCategoryAxisBaseUnit.Minutes" Type="ChartCategoryAxisType.Date">
-                                <ChartCategoryAxisLabels Format="{0:mm ssss}" />
-                            </ChartCategoryAxis>
-                        </ChartCategoryAxes>
-                        <ChartValueAxes>
-                            <ChartValueAxis Name="BatteryChargeSeries">
-                                <ChartValueAxisTitle Text="Charge" />
-                                <ChartValueAxisLabels Format="{0:P0}" />
-                            </ChartValueAxis>
-                        </ChartValueAxes>
-                    </TelerikChart>
-                </Content>
-            </TileLayoutItem> *@
             
             <TileLayoutItem HeaderText="Info" RowSpan="2" ColSpan="1">
                 <Content>
@@ -156,18 +135,39 @@
                 </Content>
             </TileLayoutItem>
 
-            <TileLayoutItem RowSpan="2" ColSpan="4">
-                <HeaderTemplate>
-                    <span style="font-size:16px;font-weight:400">Message History</span>
-                </HeaderTemplate>
-                <Content>
-                    @foreach(var item in Log)
-                    {
-                        <text>@item.Value - @item.Timestamp - @item.Topic</text>
-                        <br/>
-                    }
-                </Content>
-            </TileLayoutItem>
+            @* <TileLayoutItem RowSpan="3" ColSpan="5">
+            <HeaderTemplate>
+            <span style="font-size:16px;font-weight:400">Battery Charge</span>
+            </HeaderTemplate>
+            <Content>
+            <TelerikChart @ref="@BatteryPercentageChartRef"
+            Width="100%"
+            Transitions="false"
+            RenderAs="RenderingMode.Canvas">
+            <ChartTooltip Visible="true" />
+            <ChartLegend Position="ChartLegendPosition.Bottom" />
+            <ChartSeriesItems>
+            <ChartSeries Name="BatteryChargeSeries"
+            Data="@BatteryChargeData"
+            Field="@nameof(ChartMqttDataItem.CurrentValue)"
+            CategoryField="@nameof(ChartMqttDataItem.Timestamp)"
+            Type="ChartSeriesType.Area"
+            Axis="PowerAxis" />
+            </ChartSeriesItems>
+            <ChartCategoryAxes>
+            <ChartCategoryAxis BaseUnit="ChartCategoryAxisBaseUnit.Minutes" Type="ChartCategoryAxisType.Date">
+            <ChartCategoryAxisLabels Format="{0:mm ssss}" />
+            </ChartCategoryAxis>
+            </ChartCategoryAxes>
+            <ChartValueAxes>
+            <ChartValueAxis Name="BatteryChargeSeries">
+            <ChartValueAxisTitle Text="Charge" />
+            <ChartValueAxisLabels Format="{0:P0}" />
+            </ChartValueAxis>
+            </ChartValueAxes>
+            </TelerikChart>
+            </Content>
+            </TileLayoutItem> *@
         </TileLayoutItems>
     </TelerikTileLayout>
 </div>
