@@ -3,6 +3,7 @@ using EnergyMonitor.Client.Services;
 using EnergyMonitor.Components;
 using EnergyMonitor.Client.Models;
 using Microsoft.EntityFrameworkCore;
+using Blazored.LocalStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,8 @@ else
 {
     builder.Services.AddDbContext<MeasurementsDbContext>(o => { o.UseSqlite("Data Source=Measurements.db", b => b.MigrationsAssembly("EnergyMonitor")); });
 }
+
+builder.Services.AddBlazoredLocalStorage();
 
 builder.Services.AddScoped<MessagesDbService>();
 

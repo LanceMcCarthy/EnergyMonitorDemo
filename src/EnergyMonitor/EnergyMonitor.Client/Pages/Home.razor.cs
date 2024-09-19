@@ -12,19 +12,23 @@ public partial class Home
     [Inject]
     public MessagesDbService DbService { get; set; } = default!;
 
+    [Inject]
+    Blazored.LocalStorage.ILocalStorageService LocalStorage { get; set; } = default!;
+
     ObservableRangeCollection<ChartMqttDataItem> SolarPowerData { get; } = new(){ MaximumCount = 300 };
     ObservableRangeCollection<ChartMqttDataItem> LoadPowerData { get; } = new(){ MaximumCount = 300 };
     ObservableRangeCollection<ChartMqttDataItem> BatteryPowerData { get; } = new(){ MaximumCount = 300 };
     ObservableRangeCollection<ChartMqttDataItem> GridPowerData { get; } = new(){ MaximumCount = 300 };
     ObservableRangeCollection<ChartMqttDataItem> BatteryChargeData { get; } = new(){ MaximumCount = 300 };
-    ObservableRangeCollection<MqttDataItem> Log { get; set; } = new();
 
     TelerikChart? BatteryPercentageChartRef { get; set; }
     TelerikChart? SystemPowerChartRef { get; set; }
+    TelerikTileLayout? TileLayoutInstance { get; set; }
 
     CancellationTokenSource? cts;
     int LoadDataInterval { get; set; } = 2000;
     bool IsTimerRunning { get; set; }
+    const string LocalStorageKey = "tile-layout-state";
 
     string SolarPower { get; set; } = "0";
     string LoadPower { get; set; } = "0";
@@ -45,19 +49,21 @@ public partial class Home
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await base.OnAfterRenderAsync(firstRender);
-
         if (firstRender)
         {
+            await LoadState();
+
             cts = new CancellationTokenSource();
 
             IsTimerRunning = true;
 
             await IntervalDataUpdate();
         }
-    }
 
-    private async Task IntervalDataUpdate()
+        await base.OnAfterRenderAsync(firstRender);
+    }
+    
+    async Task IntervalDataUpdate()
     {
         while (cts?.Token != null)
         {
@@ -69,11 +75,11 @@ public partial class Home
         }
     }
 
-    private async Task OnIsTimerRunning(bool val)
+    async Task ToggleTimer()
     {
-        if (val)
+        if (!IsTimerRunning)
         {
-            if(cts?.Token == null)
+            if (cts?.Token == null)
             {
                 cts = new CancellationTokenSource();
 
@@ -82,25 +88,20 @@ public partial class Home
         }
         else
         {
-            if(cts != null)
+            if (cts != null)
                 await cts.CancelAsync();
         }
     }
 
-    private async Task GetDataAsync()
+    async Task GetDataAsync()
     {
         var items = await DbService.GetMeasurementsAsync(DateTime.Now.AddMinutes(-30), DateTime.Now);
-
-        Log.Clear();
-        Log.AddRange(items);
 
         // We only use the most recent 60 items from the database on initial load. For a longer timeline, use the /history page
         foreach (var item in items.Take(60))
         {
             if (item.Topic == null)
                 continue;
-
-            
 
             var topicName = GetTopicName(item.Topic);
 
@@ -136,7 +137,6 @@ public partial class Home
         GridFrequency = items.Where(d => d.Topic == GetTopic(TopicName.GridFrequency_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
         OutputFrequency = items.Where(d => d.Topic == GetTopic(TopicName.AcOutputFrequency_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
 
-
         OutputVoltage = items.Where(d => d.Topic == GetTopic(TopicName.AcOutputVoltage_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
         BatteryVoltage = items.Where(d => d.Topic == GetTopic(TopicName.BatteryVoltage_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
         BackToBatteryVoltage = items.Where(d => d.Topic == GetTopic(TopicName.BackToBatteryVoltage_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
@@ -144,10 +144,44 @@ public partial class Home
         BusVoltage = items.Where(d => d.Topic == GetTopic(TopicName.BusVoltage_Total)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
     }
 
-    private void ItemResize()
+    async Task ItemResize()
     {
         StateHasChanged();
         SystemPowerChartRef?.Refresh();
         BatteryPercentageChartRef?.Refresh();
+        await SaveState();
+    }
+
+    async Task OnReorder()
+    {
+        await SaveState();
+    }
+
+    async Task SaveState()
+    {
+        TileLayoutState? state = TileLayoutInstance?.GetState();
+        if (state is null) return;
+        await LocalStorage.SetItemAsync(LocalStorageKey, state);
+    }
+
+    async Task LoadState()
+    {
+        TileLayoutState? state = await LocalStorage.GetItemAsync<TileLayoutState>(LocalStorageKey);
+        if (state is null) return;
+        TileLayoutInstance?.SetState(state);
+    }
+
+
+    async Task ClearTileLayout()
+    {
+        TileLayoutItemState[] DefaultState = new[]
+        {
+            new TileLayoutItemState { ColSpan = 1, Order = 0, RowSpan = 1 },
+            new TileLayoutItemState { ColSpan = 2, Order = 1, RowSpan = 1 },
+            new TileLayoutItemState { ColSpan = 1, Order = 2, RowSpan = 1 },
+            new TileLayoutItemState { ColSpan = 4, Order = 3, RowSpan = 1 }
+        };
+        await LocalStorage.RemoveItemAsync(LocalStorageKey);
+        TileLayoutInstance?.SetState(new() { ItemStates= DefaultState });
     }
 }
