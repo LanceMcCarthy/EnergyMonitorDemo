@@ -29,7 +29,9 @@ else
 }
 
 builder.Services.AddScoped<MessagesDbService>();
-builder.Services.AddHostedService<MqttService>();
+
+builder.Services.AddSingleton<MqttService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttService>());
 
 var app = builder.Build();
 

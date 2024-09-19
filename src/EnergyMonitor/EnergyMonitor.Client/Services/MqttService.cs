@@ -15,15 +15,11 @@ public class MqttService(IConfiguration config, IServiceProvider serviceProvider
     private readonly string mqttHost = config["MQTT_HOST"] ?? throw new NullReferenceException("A value for the MQTT_HOST environment variable must be set before starting the application.");
     private readonly string mqttPort = config["MQTT_PORT"] ?? string.Empty;
 
+    public delegate Task SubscribedChanged();
+    public event SubscribedChanged? SubscriptionChanged;
+
     // LIVE Values
     public bool IsSubscribed { get; set; }
-    public double LiveBatteryChargePercentage { get; set; } = 0;
-    public string LiveSolar { get; set; } = "0";
-    public string LiveLoad { get; set; } = "0";
-    public string LiveBatteryPowerTotal { get; set; } = "0";
-    public string LiveGridTotal { get; set; } = "0";
-    public string LiveInverterMode { get; set; } = "Solar/Battery/Grid";
-    public string LiveSourcePriority { get; set; } = "Solar";
 
     // This is required in order to get the scoped DbService in a BackgroundService (we cannot inject it in the CTOR because it is scoped)
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -48,6 +44,9 @@ public class MqttService(IConfiguration config, IServiceProvider serviceProvider
                 .WithTopicFilter(f => { f.WithTopic("solar_assistant/#"); })
                 .Build(), 
             CancellationToken.None);
+
+        IsSubscribed = true;
+        SubscriptionChanged?.Invoke();
     }
 
     // On every message, we update the live values and add the item to the database
@@ -57,7 +56,7 @@ public class MqttService(IConfiguration config, IServiceProvider serviceProvider
         var decodedPayload = e.ApplicationMessage.PayloadSegment.GetTopicValue();
 
         // Update live values
-        await ProcessDataItem(decodedPayload, GetTopicName(e.ApplicationMessage.Topic));
+        //await ProcessDataItem(decodedPayload, GetTopicName(e.ApplicationMessage.Topic));
 
         // Create a scope to access the DbService and add item to the DB
         using var scope = serviceProvider.CreateScope();
@@ -83,6 +82,7 @@ public class MqttService(IConfiguration config, IServiceProvider serviceProvider
             await mqttClient!.UnsubscribeAsync(options, CancellationToken.None);
 
             IsSubscribed = false;
+            SubscriptionChanged?.Invoke();
         }
     }
 
@@ -92,88 +92,5 @@ public class MqttService(IConfiguration config, IServiceProvider serviceProvider
         await StopAsync(CancellationToken.None);
 
         mqttClient?.Dispose();
-    }
-
-    // for live values only
-    private Task ProcessDataItem(string decodedPayload, TopicName messageTopic)
-    {
-        var item = new ChartMqttDataItem { Category = messageTopic, Timestamp = DateTime.Now };
-
-        switch (messageTopic)
-        {
-            case TopicName.DeviceMode_Inverter1:
-                LiveInverterMode = decodedPayload;
-                break;
-
-            case TopicName.ChargerSourcePriority_Inverter1:
-                LiveSourcePriority = decodedPayload;
-                break;
-
-            case TopicName.LoadPower_Inverter1:
-                item.CurrentValue = Convert.ToDouble(decodedPayload);
-                LiveLoad = $"{item.CurrentValue}";
-                break;
-
-            case TopicName.PvPower_Inverter1:
-                item.CurrentValue = Convert.ToDouble(decodedPayload);
-                LiveSolar = $"{item.CurrentValue}";
-                break;
-
-            case TopicName.BatteryPower_Total:
-                item.CurrentValue = Convert.ToDouble(decodedPayload);
-                LiveBatteryPowerTotal = $"{item.CurrentValue}";
-                break;
-
-            case TopicName.GridPower_Inverter1:
-                item.CurrentValue = Convert.ToDouble(decodedPayload);
-                LiveGridTotal = $"{item.CurrentValue}";
-                break;
-
-            case TopicName.BatteryStateOfCharge_Total:
-                LiveBatteryChargePercentage = item.CurrentValue = Convert.ToDouble(decodedPayload);
-                break;
-
-            //case TopicName.PvEnergy_Total:
-            //case TopicName.LoadEnergy_Total:
-            //case TopicName.BatteryEnergyIn_Total:
-            //case TopicName.BatteryEnergyOut_Total:
-            //case TopicName.GridEnergyIn_Total:
-            //case TopicName.GridEnergyOut_Total:
-            //case TopicName.BusVoltage_Total:
-            //case TopicName.GridFrequency_Inverter1:
-            //case TopicName.PvCurrent1_Inverter1:
-            //case TopicName.BatteryVoltage_Inverter1:
-            //case TopicName.LoadApparentPower_Inverter1:
-            //case TopicName.PvCurrent2_Inverter1:
-            //case TopicName.Temperature_Inverter1:
-            //case TopicName.LoadPercentage_Inverter1:
-            //case TopicName.BatteryCurrent_Inverter1:
-            //case TopicName.PvVoltage1_Inverter1:
-            //case TopicName.PvVoltage2_Inverter1:
-            //case TopicName.PvPower1_Inverter1:
-            //case TopicName.GridVoltage_Inverter1:
-            //case TopicName.AcOutputFrequency_Inverter1:
-            //case TopicName.AcOutputVoltage_Inverter1:
-            //case TopicName.PvPower2_Inverter1:
-            //case TopicName.BatteryAbsorptionChargeVoltage_Inverter1:
-            //case TopicName.MaxChargeCurrent_Inverter1:
-            //case TopicName.BatteryFloatChargeVoltage_Inverter1:
-            //case TopicName.MaxGridChargeCurrent_Inverter1:
-            //case TopicName.OutputSourcePriority_Inverter1:
-            //case TopicName.ToGridBatteryVoltage_Inverter1:
-            //case TopicName.ShutdownBatteryVoltage_Inverter1:
-            //case TopicName.BackToBatteryVoltage_Inverter1:
-            //case TopicName.SerialNumber_Inverter1:
-            //case TopicName.PowerSaving_Inverter1:
-            //case TopicName.Current_Battery1:
-            //case TopicName.Voltage_Battery1:
-            //case TopicName.Power_Battery1:
-            //case TopicName.StateOfCharge_Battery1:
-            case TopicName.Unknown:
-            default:
-                break;
-        }
-
-        return Task.CompletedTask;
     }
 }
