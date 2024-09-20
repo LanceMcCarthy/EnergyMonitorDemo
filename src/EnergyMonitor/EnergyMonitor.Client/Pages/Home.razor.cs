@@ -76,8 +76,6 @@ public partial class Home
             await Task.Delay(LoadDataInterval, cts.Token);
 
             await GetDataAsync();
-
-            StateHasChanged();
         }
     }
 
@@ -126,6 +124,25 @@ public partial class Home
     {
         var items = await DbService.GetMeasurementsAsync(StartDateTime, EndDateTime);
 
+        LoadPower = items.GetNewestValue(TopicName.LoadPower_Inverter1, "0");
+        SolarPower = items.GetNewestValue(TopicName.PvPower_Inverter1, "0");
+        GridPower = items.GetNewestValue(TopicName.GridPower_Inverter1, "0");
+        BatteryPower = items.GetNewestValue(TopicName.BatteryPower_Total, "0");
+
+        BatteryChargeLevel = Convert.ToDouble(items.GetNewestValue(TopicName.BatteryStateOfCharge_Total, "0"));
+
+        InverterMode = items.GetNewestValue(TopicName.DeviceMode_Inverter1, "unknown");
+        ChargerSourcePriority = items.GetNewestValue(TopicName.ChargerSourcePriority_Inverter1, "unknown");
+
+        GridFrequency = items.GetNewestValue(TopicName.GridFrequency_Inverter1, "0");
+        OutputFrequency = items.GetNewestValue(TopicName.AcOutputFrequency_Inverter1, "0");
+
+        OutputVoltage = items.GetNewestValue(TopicName.AcOutputVoltage_Inverter1, "0");
+        BatteryVoltage  = items.GetNewestValue(TopicName.BatteryVoltage_Inverter1, "0");
+        BackToBatteryVoltage = items.GetNewestValue(TopicName.BackToBatteryVoltage_Inverter1, "0");
+        Pv1Voltage = items.GetNewestValue(TopicName.PvVoltage1_Inverter1, "0");
+        BusVoltage = items.GetNewestValue(TopicName.BusVoltage_Total, "0");
+
         // We only use the most recent 60 items from the database on initial load. For a longer timeline, use the /history page
         foreach (var item in items.Take(60))
         {
@@ -155,22 +172,7 @@ public partial class Home
             }
         }
 
-        SolarPower = items.Where(d => d.Topic == GetTopic(TopicName.PvPower_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
-        GridPower = items.Where(d => d.Topic == GetTopic(TopicName.GridPower_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
-        LoadPower = items.Where(d => d.Topic == GetTopic(TopicName.LoadPower_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
-        BatteryPower = items.Where(d => d.Topic == GetTopic(TopicName.BatteryPower_Total)).OrderBy(d=>d.Timestamp).LastOrDefault()?.Value ?? "0";
-        BatteryChargeLevel = Convert.ToDouble(items.Where(d => d.Topic == GetTopic(TopicName.BatteryStateOfCharge_Total)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0");
-        InverterMode = items.Where(d => d.Topic == GetTopic(TopicName.DeviceMode_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "unknown";
-        ChargerSourcePriority = items.Where(d => d.Topic == GetTopic(TopicName.ChargerSourcePriority_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "unknown";
-
-        GridFrequency = items.Where(d => d.Topic == GetTopic(TopicName.GridFrequency_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
-        OutputFrequency = items.Where(d => d.Topic == GetTopic(TopicName.AcOutputFrequency_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
-
-        OutputVoltage = items.Where(d => d.Topic == GetTopic(TopicName.AcOutputVoltage_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
-        BatteryVoltage = items.Where(d => d.Topic == GetTopic(TopicName.BatteryVoltage_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
-        BackToBatteryVoltage = items.Where(d => d.Topic == GetTopic(TopicName.BackToBatteryVoltage_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
-        Pv1Voltage = items.Where(d => d.Topic == GetTopic(TopicName.PvVoltage1_Inverter1)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
-        BusVoltage = items.Where(d => d.Topic == GetTopic(TopicName.BusVoltage_Total)).OrderBy(d => d.Timestamp).LastOrDefault()?.Value ?? "0";
+        await InvokeAsync(StateHasChanged);
     }
 
     async Task ItemResize()
