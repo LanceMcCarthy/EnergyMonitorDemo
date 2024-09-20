@@ -6,6 +6,11 @@ A demo project that shows how to use MQTT with a .NET web, mobile and desktop ap
 | `main` | [![Main](https://github.com/LanceMcCarthy/EnergyMonitorDemo/actions/workflows/main.yml/badge.svg)](https://github.com/LanceMcCarthy/EnergyMonitorDemo/actions/workflows/main.yml) |
 | `releases/*` | [![Releases](https://github.com/LanceMcCarthy/EnergyMonitorDemo/actions/workflows/releases.yml/badge.svg)](https://github.com/LanceMcCarthy/EnergyMonitorDemo/actions/workflows/releases.yml) |
 
+![image](https://github.com/user-attachments/assets/93358ea0-8795-445a-ae90-4cc61b0569a2)
+
+![image](https://github.com/user-attachments/assets/340434aa-5350-4009-bd16-b5fcb4e03be3)
+
+
 ## Deployment Options
 
 ### Docker
