@@ -4,6 +4,7 @@ using EnergyMonitor.Client.Services;
 using Microsoft.AspNetCore.Components;
 using Telerik.Blazor.Components;
 using static EnergyMonitor.Client.Models.MessageUtilities;
+// ReSharper disable ArrangeTypeMemberModifiers
 
 namespace EnergyMonitor.Client.Pages;
 
@@ -15,16 +16,21 @@ public partial class Home
     [Inject]
     Blazored.LocalStorage.ILocalStorageService LocalStorage { get; set; } = default!;
 
+    TelerikChart? BatteryPercentageChartRef { get; set; }
+    TelerikChart? SystemPowerChartRef { get; set; }
+    TelerikTileLayout? TileLayoutInstance { get; set; }
+
     ObservableRangeCollection<ChartMqttDataItem> SolarPowerData { get; } = new(){ MaximumCount = 300 };
     ObservableRangeCollection<ChartMqttDataItem> LoadPowerData { get; } = new(){ MaximumCount = 300 };
     ObservableRangeCollection<ChartMqttDataItem> BatteryPowerData { get; } = new(){ MaximumCount = 300 };
     ObservableRangeCollection<ChartMqttDataItem> GridPowerData { get; } = new(){ MaximumCount = 300 };
     ObservableRangeCollection<ChartMqttDataItem> BatteryChargeData { get; } = new(){ MaximumCount = 300 };
 
-    TelerikChart? BatteryPercentageChartRef { get; set; }
-    TelerikChart? SystemPowerChartRef { get; set; }
-    TelerikTileLayout? TileLayoutInstance { get; set; }
-
+    static readonly List<string> TimeRanges = ["1h", "6h", "12h", "24h"];
+    string ActiveTimeRange { get; set; } = TimeRanges[0];
+    DateTime StartDateTime { get; set; } = DateTime.Now.AddHours(-1);
+    DateTime EndDateTime { get; set; } = DateTime.Now;
+    
     CancellationTokenSource? cts;
     int LoadDataInterval { get; set; } = 2000;
     bool IsTimerRunning { get; set; }
@@ -93,9 +99,32 @@ public partial class Home
         }
     }
 
+    private async Task OnTimeRangeChanged(string newValue)
+    {
+        ActiveTimeRange = newValue;
+
+        SolarPowerData.Clear();
+        LoadPowerData.Clear();
+        BatteryPowerData.Clear();
+        GridPowerData.Clear();
+        BatteryChargeData.Clear();
+
+        StartDateTime = newValue switch
+        {
+            "1h" => DateTime.Now.AddHours(-1),
+            "6h" => DateTime.Now.AddHours(-6),
+            "12h" => DateTime.Now.AddHours(-12),
+            "24h" => DateTime.Now.AddHours(-24),
+            _ => StartDateTime
+        };
+
+        // regardless if timer is running or not, we want to refresh the data
+        await GetDataAsync();
+    }
+
     async Task GetDataAsync()
     {
-        var items = await DbService.GetMeasurementsAsync(DateTime.Now.AddMinutes(-30), DateTime.Now);
+        var items = await DbService.GetMeasurementsAsync(StartDateTime, EndDateTime);
 
         // We only use the most recent 60 items from the database on initial load. For a longer timeline, use the /history page
         foreach (var item in items.Take(60))
@@ -174,14 +203,17 @@ public partial class Home
 
     async Task ClearTileLayout()
     {
-        TileLayoutItemState[] DefaultState = new[]
-        {
-            new TileLayoutItemState { ColSpan = 1, Order = 0, RowSpan = 1 },
-            new TileLayoutItemState { ColSpan = 2, Order = 1, RowSpan = 1 },
-            new TileLayoutItemState { ColSpan = 1, Order = 2, RowSpan = 1 },
-            new TileLayoutItemState { ColSpan = 4, Order = 3, RowSpan = 1 }
-        };
         await LocalStorage.RemoveItemAsync(LocalStorageKey);
-        TileLayoutInstance?.SetState(new() { ItemStates= DefaultState });
+
+        TileLayoutInstance?.SetState(new() { ItemStates= new[]
+        {
+            new TileLayoutItemState { Order = 0, ColSpan = 1, RowSpan = 1 },
+            new TileLayoutItemState { Order = 1, ColSpan = 1, RowSpan = 1 },
+            new TileLayoutItemState { Order = 2, ColSpan = 1, RowSpan = 1 },
+            new TileLayoutItemState { Order = 3, ColSpan = 1, RowSpan = 1 },
+            new TileLayoutItemState { Order = 4, ColSpan = 1, RowSpan = 1 },
+            new TileLayoutItemState { Order = 5, ColSpan = 4, RowSpan = 2 },
+            new TileLayoutItemState { Order = 6, ColSpan = 1, RowSpan = 2 }
+        } });
     }
 }
