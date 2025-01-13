@@ -3,7 +3,6 @@ using Microsoft.Extensions.Hosting;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Packets;
-using static EnergyMonitor.Client.Models.MessageUtilities;
 
 namespace EnergyMonitor.Client.Services;
 
@@ -34,8 +33,19 @@ public class MqttService(IConfiguration config, IServiceProvider serviceProvider
         mqttClient.ApplicationMessageReceivedAsync += OnMessageReceived;
 
         // Connect to the MQTT server
-        var port = int.TryParse(mqttPort, out var portNumber) ? portNumber : 1883;
-        var clientOptions = new MqttClientOptionsBuilder().WithTcpServer(mqttHost, port).Build();
+        var clientOptionsBuilder = new MqttClientOptionsBuilder()
+            .WithTcpServer(mqttHost, int.TryParse(mqttPort, out var portNumber) ? portNumber : 1883);
+
+        if (!string.IsNullOrEmpty(config["MQTT_USERNAME"]))
+        {
+            if(string.IsNullOrEmpty(config["MQTT_PASSWORD"]))
+                throw new NullReferenceException("A value for the MQTT_PASSWORD environment variable must be set if a username is provided.");
+
+            clientOptionsBuilder.WithCredentials(config["MQTT_USERNAME"], config["MQTT_PASSWORD"]);
+        }
+
+        var clientOptions = clientOptionsBuilder.Build();
+
         await mqttClient!.ConnectAsync(clientOptions, CancellationToken.None);
 
         // start listening for messages
